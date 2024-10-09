@@ -1,22 +1,44 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Href, useRouter } from 'expo-router';
 
 export default function LoginScreen() {
-  const router = useRouter();
+  const users = [
+    { username: 'admin', password: 'admin', group: 'admin' },
+    { username: 'bigcats', password: 'staff', group: 'staff', animalsection: 'bigcats' },
+    { username: 'primates', password: 'staff', group: 'staff', animalsection: 'primates' },
+    { username: 'reptiles', password: 'staff', group: 'staff', animalsection: 'reptiles' },
+    { username: 'birds', password: 'staff', group: 'staff', animalsection: 'birds' },
+  ];
+  
+  const router = useRouter(); 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  
 
   const handleLogin = () => {
-    if (username === 'admin' && password === 'admin') {
-      router.replace('/admin');
-    } else if (username === 'staff' && password === 'staff') {
-      router.replace('/staff');
+    const user = users.find(u => u.username === username && u.password === password);
+    if (user) {
+      if (user.group === 'admin') {
+        
+        router.replace('/admin');
+      } else if (user.group === 'staff') {
+        const path = `/staff/animalgroup/${user.animalsection}` as Href<string>;
+        router.push(path) 
+      }
     } else {
       setError('Invalid credentials');
     }
   };
+  const repalacePathParams = (path: string, params: { [key: string]: string }, prefix: string = ':') => {
+    let newPath = path
+  
+    Object.entries(params).forEach(([key, value]) => {
+      newPath = newPath.replace(prefix + key, value)
+    })
+    return newPath
+  }
 
   return (
     <View style={styles.container}>

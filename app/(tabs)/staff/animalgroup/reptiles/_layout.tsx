@@ -1,8 +1,8 @@
-import { Tabs } from 'expo-router';
 import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from 'expo-router';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
-export default function StaffTabLayout() {
+export default function ReptilesLayout() {
   return (
     <Tabs
       screenOptions={({ route }) => ({
@@ -21,7 +21,7 @@ export default function StaffTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: 'Reptiles',
         }}
       />
       <Tabs.Screen
