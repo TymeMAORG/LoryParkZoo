@@ -23,7 +23,7 @@ export default function LoginScreen() {
     if (user) {
       if (user.group === 'admin') {
         
-        router.replace('/admin');
+        router.push('/admin');
       } else if (user.group === 'staff') {
         const path = `/staff/animalgroup/${user.animalsection}` as Href<string>;
         router.push(path) 
