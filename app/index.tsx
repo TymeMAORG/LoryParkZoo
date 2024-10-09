@@ -9,6 +9,7 @@ export default function LoginScreen() {
     { username: 'primates', password: 'staff', group: 'staff', animalsection: 'primates' },
     { username: 'reptiles', password: 'staff', group: 'staff', animalsection: 'reptiles' },
     { username: 'birds', password: 'staff', group: 'staff', animalsection: 'birds' },
+    { username: 'birdsofprey', password: 'staff', group: 'staff', animalsection: 'birdsofprey' },
   ];
   
   const router = useRouter(); 
