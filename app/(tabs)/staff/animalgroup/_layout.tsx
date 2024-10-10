@@ -9,11 +9,17 @@ export default function AnimalGroupLayout() {
         tabBarIcon: ({ color, size }) => {
           let iconName: any;
 
-          if (route.name === 'index') {
-            iconName = 'home';
-          } else if (route.name === 'profile') {
-            iconName = 'person';
-          }
+          // if (route.name === 'bigcats') {
+          //   iconName = 'paw';
+          // } else if (route.name === 'birds') {
+          //   iconName = 'bird';
+          // } else if (route.name === 'birdsofprey') {
+          //   iconName = 'eagle';
+          // } else if (route.name === 'primates') {
+          //   iconName = 'monkey';
+          // } else if (route.name === 'reptiles') {
+          //   iconName = 'snake';
+          // }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         headerShown: false,
@@ -21,15 +27,33 @@ export default function AnimalGroupLayout() {
       })}
     >
       <Tabs.Screen
-        name="index"
+        name="bigcats"
         options={{
-          title: 'Home',
+          title: 'Big Cats',
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="birds"
         options={{
-          title: 'Profile',
+          title: 'Birds',
+        }}
+      />
+      <Tabs.Screen
+        name="birdsofprey"
+        options={{
+          title: 'Birds of Prey',
+        }}
+      />
+      <Tabs.Screen
+        name="primates"
+        options={{
+          title: 'Primates',
+        }}
+      />
+      <Tabs.Screen
+        name="reptiles"
+        options={{
+          title: 'Reptiles',
         }}
       />
     </Tabs>
