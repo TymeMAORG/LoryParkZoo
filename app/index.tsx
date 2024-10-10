@@ -1,3 +1,4 @@
+// /app/index.tsx
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
 import { Href, useRouter } from 'expo-router';
@@ -25,21 +26,13 @@ export default function LoginScreen() {
         
         router.push('/admin');
       } else if (user.group === 'staff') {
-        const path = `/staff/animalgroup/${user.animalsection}` as Href<string>;
+        const path = `/staff/animalgroup/${user.animalsection}?username=${username}` as Href<string>;
         router.push(path) 
       }
     } else {
       setError('Invalid credentials');
     }
   };
-  const repalacePathParams = (path: string, params: { [key: string]: string }, prefix: string = ':') => {
-    let newPath = path
-  
-    Object.entries(params).forEach(([key, value]) => {
-      newPath = newPath.replace(prefix + key, value)
-    })
-    return newPath
-  }
 
   return (
     <View style={styles.container}>
