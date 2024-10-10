@@ -1,11 +1,18 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 
+import FoodMonitoringSheet from './FoodMonitoringSheet';
+
+
+
+
+
 export default function BigCatsHome() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Big Cats Home</Text>
-      {/*ToDo: add Staff home content */}
+      {/* Include the Food Monitoring Sheet */}
+     {/* <FoodMonitoringSheet />*/}
     </View>
   );
 }
