@@ -1,8 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import Icon from '@mdi/react';
-import { mdiBird } from '@mdi/js';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function BirdsLayout() {
   return (
@@ -12,7 +11,7 @@ export default function BirdsLayout() {
           let iconName: any;
 
             if (route.name === 'index') {
-            return <Icon path={mdiBird} size={size} color={color} />;
+              return <MaterialCommunityIcons name="bird" size={size} color={color} />;
           } else if (route.name === 'profile') {
             iconName = 'person';
           }

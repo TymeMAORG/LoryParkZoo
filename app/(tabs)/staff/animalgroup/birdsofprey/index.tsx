@@ -1,7 +1,7 @@
+// /app/(tabs)/staff/animalgroup/birdsofprey/index.tsx
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useLocalSearchParams } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 
 // Birds of prey data
 const birdsOfPrey = [
@@ -19,7 +19,7 @@ export default function BirdsOfPreyHome() {
 
   const handleBirdSelect = (bird: { id?: React.Key | null | undefined; name: string; species: string }) => {
     router.push({
-      pathname: './birdsofprey/foodmonitoring',
+      pathname: '/staff/animalgroup/birdsofprey/foodmonitoring',
       params: {
         name: bird.name,
         species: bird.species,

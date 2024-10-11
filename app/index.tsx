@@ -1,4 +1,3 @@
-// /app/index.tsx
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
 import { Href, useRouter } from 'expo-router';
@@ -12,6 +11,7 @@ export default function LoginScreen() {
     { username: 'birds', password: 'staff', group: 'staff', animalsection: 'birds' },
     { username: 'birdsofprey', password: 'staff', group: 'staff', animalsection: 'birdsofprey' },
   ];
+  
   
   const router = useRouter(); 
   const [username, setUsername] = useState('');
