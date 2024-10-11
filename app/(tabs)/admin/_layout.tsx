@@ -13,8 +13,12 @@ export default function AdminTabLayout() {
             iconName = 'speedometer';
           } else if (route.name === 'settings') {
             iconName = 'settings';
+          } else if (route.name === 'staff') {
+            //iconName = 'profile';
           }
-
+          else if (route.name === 'Species') {
+            //iconName = 'profile';
+          }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
       })}
@@ -26,6 +30,18 @@ export default function AdminTabLayout() {
         }}
       />
       <Tabs.Screen
+        name="staff"
+        options={{
+          title: 'Staff',
+        }}
+      />
+      <Tabs.Screen
+        name="species"
+        options={{
+          title: 'Species',
+        }}
+      />
+       <Tabs.Screen
         name="settings"
         options={{
           title: 'Settings',
