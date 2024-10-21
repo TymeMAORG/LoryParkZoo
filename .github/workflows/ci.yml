@@ -40,20 +40,14 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
-
       - name: 🏗 Setup EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EAS_TOKEN }}
 
-      - name: Configure EAS
-        run: eas build:configure --non-interactive
-
       - name: Build App
-        run: eas build --profile development --platform all
+        run: eas build --profile development --platform all --non-interactive
 
   test:
     name: Run Jest Tests
