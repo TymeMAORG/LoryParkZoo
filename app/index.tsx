@@ -1,36 +1,61 @@
-import React, { useState } from 'react';
-import { View, TextInput, Button, StyleSheet, Text } from 'react-native';
-import { Href, useRouter } from 'expo-router';
+import React, { useState } from "react";
+import { View, TextInput, Button, StyleSheet, Text } from "react-native";
+import { Href, useRouter } from "expo-router";
 
 export default function LoginScreen() {
   const users = [
-    { username: 'admin', password: 'admin', group: 'admin' },
-    { username: 'bigcats', password: 'staff', group: 'staff', animalsection: 'bigcats' },
-    { username: 'primates', password: 'staff', group: 'staff', animalsection: 'primates' },
-    { username: 'reptiles', password: 'staff', group: 'staff', animalsection: 'reptiles' },
-    { username: 'birds', password: 'staff', group: 'staff', animalsection: 'birds' },
-    { username: 'birdsofprey', password: 'staff', group: 'staff', animalsection: 'birdsofprey' },
+    { username: "admin", password: "admin", group: "admin" },
+    {
+      username: "bigcats",
+      password: "staff",
+      group: "staff",
+      animalsection: "bigcats",
+    },
+    {
+      username: "primates",
+      password: "staff",
+      group: "staff",
+      animalsection: "primates",
+    },
+    {
+      username: "reptiles",
+      password: "staff",
+      group: "staff",
+      animalsection: "reptiles",
+    },
+    {
+      username: "birds",
+      password: "staff",
+      group: "staff",
+      animalsection: "birds",
+    },
+    {
+      username: "birdsofprey",
+      password: "staff",
+      group: "staff",
+      animalsection: "birdsofprey",
+    },
   ];
-  
-  
-  const router = useRouter(); 
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  
+
+  const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = () => {
-    const user = users.find(u => u.username === username && u.password === password);
+    const user = users.find(
+      (u) => u.username === username && u.password === password,
+    );
     if (user) {
-      if (user.group === 'admin') {
-        
-        router.push('/admin');
-      } else if (user.group === 'staff') {
-        const path = `/staff/animalgroup/${user.animalsection}?username=${username}` as Href<string>;
-        router.push(path) 
+      if (user.group === "admin") {
+        router.push("/admin");
+      } else if (user.group === "staff") {
+        const path =
+          `/staff/animalgroup/${user.animalsection}?username=${username}` as Href<string>;
+        router.push(path);
       }
     } else {
-      setError('Invalid credentials');
+      setError("Invalid credentials");
     }
   };
 
@@ -62,25 +87,25 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
+    backgroundColor: "#fff",
+    justifyContent: "center",
   },
   title: {
     fontSize: 32,
     marginBottom: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   input: {
     height: 50,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderWidth: 1,
     marginBottom: 16,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   error: {
-    color: 'red',
+    color: "red",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });

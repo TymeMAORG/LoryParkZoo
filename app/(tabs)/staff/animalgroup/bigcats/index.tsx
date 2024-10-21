@@ -1,18 +1,14 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 
-import FoodMonitoringSheet from './FoodMonitoringSheet';
-
-
-
-
+import FoodMonitoringSheet from "./FoodMonitoringSheet";
 
 export default function BigCatsHome() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Big Cats Home</Text>
       {/* Include the Food Monitoring Sheet */}
-     {/* <FoodMonitoringSheet />*/}
+      {/* <FoodMonitoringSheet />*/}
     </View>
   );
 }
@@ -24,6 +20,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });

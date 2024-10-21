@@ -1,12 +1,12 @@
-import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
-import { useRouter } from 'expo-router';
+import React from "react";
+import { View, Text, StyleSheet, Button } from "react-native";
+import { useRouter } from "expo-router";
 
 export default function StaffProfile() {
   const router = useRouter();
 
   const handleLogout = () => {
-    router.replace('/'); 
+    router.replace("/");
   };
 
   return (
@@ -33,27 +33,27 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   accountSection: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     //marginTop: 24,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: "#ccc",
     borderRadius: 8,
   },
   accountLabel: {
     fontSize: 16,
-    color: 'grey',
+    color: "grey",
     marginTop: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 8,
     marginStart: 8,
   },
   accountDescription: {
     marginVertical: 8,
     fontSize: 16,
-    color: '#555',
+    color: "#555",
   },
 });

@@ -10,7 +10,7 @@
       "android": {
         "buildType": "apk"
       },
-      "ios" : {
+      "ios": {
         "simulator": true
       }
     },
@@ -22,7 +22,7 @@
       "android": {
         "buildType": "apk"
       },
-      "distribution" : "internal"
+      "distribution": "internal"
     }
   },
   "submit": {

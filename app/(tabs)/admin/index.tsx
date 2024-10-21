@@ -1,17 +1,37 @@
 // /app/(tabs)/admin/index.tsx
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React from "react";
+import { View, Text, StyleSheet } from "react-native";
 
 export default function AdminDashboard() {
-  
   const getFormattedDate = () => {
     const date = new Date();
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const daysOfWeek = [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ];
     const day = daysOfWeek[date.getDay()];
-    const monthsOfYear = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    const monthsOfYear = [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ];
     const month = monthsOfYear[date.getMonth()];
-    const dayOfMonth = date.getDate().toString().padStart(2, '0');
-    
+    const dayOfMonth = date.getDate().toString().padStart(2, "0");
+
     return `${day}, ${month} ${dayOfMonth}`;
   };
 
@@ -31,11 +51,10 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   date: {
     fontSize: 18,
     marginTop: 8,
   },
 });
-

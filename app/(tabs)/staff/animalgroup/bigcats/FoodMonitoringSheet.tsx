@@ -1,5 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useEffect } from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
 
 // Define types for the big cats data and food intake state
 type BigCat = {
@@ -12,23 +18,23 @@ type FoodIntake = {
 };
 
 const bigCats: BigCat[] = [
-  { name: 'DANIEL', species: 'LION' },
-  { name: 'HEIN', species: 'LION' },
-  { name: 'AMBER', species: 'LION' },
-  { name: 'KIMBERLY', species: 'TIGER' },
-  { name: 'JUPITER', species: 'JAGUAR' },
-  { name: 'LEIA', species: 'JAGUAR' },
-  { name: 'JACK', species: 'LEOPARD' },
-  { name: 'JOHENSUU', species: 'LEOPARD' },
-  { name: 'KRASIK', species: 'LYNX' },
-  { name: 'DEBBY', species: 'LYNX' }
+  { name: "DANIEL", species: "LION" },
+  { name: "HEIN", species: "LION" },
+  { name: "AMBER", species: "LION" },
+  { name: "KIMBERLY", species: "TIGER" },
+  { name: "JUPITER", species: "JAGUAR" },
+  { name: "LEIA", species: "JAGUAR" },
+  { name: "JACK", species: "LEOPARD" },
+  { name: "JOHENSUU", species: "LEOPARD" },
+  { name: "KRASIK", species: "LYNX" },
+  { name: "DEBBY", species: "LYNX" },
 ];
 
-const foodOptions: string[] = ['All', '3/4', '1/2', '1/4', 'None'];
+const foodOptions: string[] = ["All", "3/4", "1/2", "1/4", "None"];
 
 export default function FoodMonitoringSheet() {
   const [foodIntake, setFoodIntake] = useState<FoodIntake>({});
-  const [currentDate, setCurrentDate] = useState<string>('');
+  const [currentDate, setCurrentDate] = useState<string>("");
 
   // Handle selection of food intake for each cat
   const handleSelection = (catName: string, option: string) => {
@@ -50,7 +56,9 @@ export default function FoodMonitoringSheet() {
     <ScrollView style={styles.container}>
       {/* Date and Time Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>Daily Food Monitoring Sheet for Big Cats</Text>
+        <Text style={styles.headerText}>
+          Daily Food Monitoring Sheet for Big Cats
+        </Text>
         <Text style={styles.dateText}>Date: {currentDate}</Text>
       </View>
 
@@ -65,7 +73,9 @@ export default function FoodMonitoringSheet() {
         {/* Data Rows */}
         {bigCats.map((cat, index) => (
           <View key={index} style={styles.row}>
-            <Text style={[styles.cell, styles.catCell]}>{cat.name} / {cat.species}</Text>
+            <Text style={[styles.cell, styles.catCell]}>
+              {cat.name} / {cat.species}
+            </Text>
             <View style={styles.foodOptions}>
               {foodOptions.map((option, optionIndex) => (
                 <TouchableOpacity
@@ -99,75 +109,75 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f0f4f7', // Light background color
+    backgroundColor: "#f0f4f7", // Light background color
   },
   header: {
     marginBottom: 15,
   },
   headerText: {
     fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#333',
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#333",
   },
   dateText: {
     fontSize: 14,
-    textAlign: 'center',
-    color: '#666',
+    textAlign: "center",
+    color: "#666",
     marginTop: 8,
   },
   table: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     paddingVertical: 10,
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 1,
-    borderColor: '#ddd',
-    alignItems: 'center',
+    borderColor: "#ddd",
+    alignItems: "center",
     paddingVertical: 10,
   },
   cell: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 5,
   },
   headerCell: {
-    fontWeight: 'bold',
-    backgroundColor: '#fafafa',
+    fontWeight: "bold",
+    backgroundColor: "#fafafa",
     fontSize: 16,
     paddingVertical: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
   catCell: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
   },
   foodOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     flex: 1,
   },
   optionButton: {
-    backgroundColor: '#ddd',
+    backgroundColor: "#ddd",
     paddingVertical: 5,
     paddingHorizontal: 10,
     borderRadius: 5,
     marginHorizontal: 4,
   },
   selectedButton: {
-    backgroundColor: '#4CAF50', // Selected button background color
+    backgroundColor: "#4CAF50", // Selected button background color
   },
   optionText: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   selectedText: {
-    color: '#fff', // Selected text color
+    color: "#fff", // Selected text color
   },
 });

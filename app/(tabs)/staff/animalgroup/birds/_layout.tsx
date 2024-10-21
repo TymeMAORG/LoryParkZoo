@@ -1,7 +1,7 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React from "react";
+import { Tabs } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 export default function BirdsLayout() {
   return (
@@ -10,10 +10,12 @@ export default function BirdsLayout() {
         tabBarIcon: ({ color, size }) => {
           let iconName: any;
 
-            if (route.name === 'index') {
-              return <MaterialCommunityIcons name="bird" size={size} color={color} />;
-          } else if (route.name === 'profile') {
-            iconName = 'person';
+          if (route.name === "index") {
+            return (
+              <MaterialCommunityIcons name="bird" size={size} color={color} />
+            );
+          } else if (route.name === "profile") {
+            iconName = "person";
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -22,13 +24,13 @@ export default function BirdsLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Birds',
+          title: "Birds",
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: "Profile",
         }}
       />
     </Tabs>

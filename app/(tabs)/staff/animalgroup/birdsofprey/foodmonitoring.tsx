@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Button } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
-import { Picker } from '@react-native-picker/picker';
-import ToastManager, { Toast } from 'toastify-react-native';
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, ScrollView, Button } from "react-native";
+import { useLocalSearchParams } from "expo-router";
+import { Picker } from "@react-native-picker/picker";
+import ToastManager, { Toast } from "toastify-react-native";
 
 // Define types for the birds of prey data and food intake state
 type BirdOfPrey = {
@@ -15,23 +15,23 @@ type FoodIntake = {
 };
 
 const birdsOfPrey: BirdOfPrey[] = [
-  { name: 'Sky', species: 'Bald Eagle' },
-  { name: 'Thor', species: 'Golden Eagle' },
-  { name: 'Zeus', species: 'Vulture' },
-  { name: 'Athena', species: 'Vulture' },
-  { name: 'Ares', species: 'Falcon' },
-  { name: 'Apollo', species: 'Falcon' },
+  { name: "Sky", species: "Bald Eagle" },
+  { name: "Thor", species: "Golden Eagle" },
+  { name: "Zeus", species: "Vulture" },
+  { name: "Athena", species: "Vulture" },
+  { name: "Ares", species: "Falcon" },
+  { name: "Apollo", species: "Falcon" },
 ];
 
-const foodOptions: string[] = ['All', '3/4', '1/2', '1/4', 'None'];
+const foodOptions: string[] = ["All", "3/4", "1/2", "1/4", "None"];
 
 export default function FoodMonitoring() {
   const [foodIntake, setFoodIntake] = useState<FoodIntake>({});
-  const [currentDate, setCurrentDate] = useState<string>('');
+  const [currentDate, setCurrentDate] = useState<string>("");
   const { keeper } = useLocalSearchParams();
 
   const showToast = () => {
-    Toast.success('Form Submitted Successfully!');
+    Toast.success("Form Submitted Successfully!");
   };
 
   useEffect(() => {
@@ -49,9 +49,9 @@ export default function FoodMonitoring() {
   };
 
   const handleSave = () => {
-    console.log('Date:', currentDate);
-    console.log('Keeper:', keeper);
-    console.log('Food Intake:', foodIntake);
+    console.log("Date:", currentDate);
+    console.log("Keeper:", keeper);
+    console.log("Food Intake:", foodIntake);
 
     showToast();
   };
@@ -60,7 +60,9 @@ export default function FoodMonitoring() {
     <ScrollView style={styles.container}>
       <ToastManager />
       <View style={styles.header}>
-        <Text style={styles.headerText}>Daily Food Monitoring Sheet for Birds of Prey</Text>
+        <Text style={styles.headerText}>
+          Daily Food Monitoring Sheet for Birds of Prey
+        </Text>
         <Text style={styles.dateText}>Date: {currentDate}</Text>
         <Text style={styles.dateText}>Keeper: {keeper}</Text>
       </View>
@@ -73,15 +75,23 @@ export default function FoodMonitoring() {
 
         {birdsOfPrey.map((bird, index) => (
           <View key={index} style={styles.row}>
-            <Text style={[styles.cell, styles.birdCell]}>{bird.name} / {bird.species}</Text>
+            <Text style={[styles.cell, styles.birdCell]}>
+              {bird.name} / {bird.species}
+            </Text>
             <View style={styles.foodOptions}>
               <Picker
                 selectedValue={foodIntake[bird.name]}
                 style={styles.picker}
-                onValueChange={(itemValue: string) => handleSelection(bird.name, itemValue)}
+                onValueChange={(itemValue: string) =>
+                  handleSelection(bird.name, itemValue)
+                }
               >
                 {foodOptions.map((option, optionIndex) => (
-                  <Picker.Item key={optionIndex} label={option} value={option} />
+                  <Picker.Item
+                    key={optionIndex}
+                    label={option}
+                    value={option}
+                  />
                 ))}
               </Picker>
             </View>
@@ -101,58 +111,58 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f0f4f7',
+    backgroundColor: "#f0f4f7",
   },
   header: {
     marginBottom: 15,
   },
   headerText: {
     fontSize: 20,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    color: '#333',
+    fontWeight: "bold",
+    textAlign: "center",
+    color: "#333",
   },
   dateText: {
     fontSize: 14,
-    textAlign: 'center',
-    color: '#666',
+    textAlign: "center",
+    color: "#666",
     marginTop: 8,
   },
   table: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 8,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     paddingVertical: 10,
   },
   row: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderBottomWidth: 1,
-    borderColor: '#ddd',
-    alignItems: 'center',
+    borderColor: "#ddd",
+    alignItems: "center",
     paddingVertical: 10,
   },
   cell: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingHorizontal: 5,
   },
   headerCell: {
-    fontWeight: 'bold',
-    backgroundColor: '#fafafa',
+    fontWeight: "bold",
+    backgroundColor: "#fafafa",
     fontSize: 16,
     paddingVertical: 10,
-    textAlign: 'center',
+    textAlign: "center",
   },
   birdCell: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
   },
   foodOptions: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   picker: {
     height: 40,
@@ -160,6 +170,6 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
 });

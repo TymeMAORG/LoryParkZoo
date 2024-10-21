@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
-import React from 'react';
-import { Ionicons } from '@expo/vector-icons';
+import { Tabs } from "expo-router";
+import React from "react";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function AdminTabLayout() {
   return (
@@ -9,14 +9,13 @@ export default function AdminTabLayout() {
         tabBarIcon: ({ color, size }) => {
           let iconName: any;
 
-          if (route.name === 'index') {
-            iconName = 'speedometer';
-          } else if (route.name === 'settings') {
-            iconName = 'settings';
-          } else if (route.name === 'staff') {
+          if (route.name === "index") {
+            iconName = "speedometer";
+          } else if (route.name === "settings") {
+            iconName = "settings";
+          } else if (route.name === "staff") {
             //iconName = 'profile';
-          }
-          else if (route.name === 'Species') {
+          } else if (route.name === "Species") {
             //iconName = 'profile';
           }
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -26,25 +25,25 @@ export default function AdminTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Dashboard',
+          title: "Dashboard",
         }}
       />
       <Tabs.Screen
         name="staff"
         options={{
-          title: 'Staff',
+          title: "Staff",
         }}
       />
       <Tabs.Screen
         name="species"
         options={{
-          title: 'Species',
+          title: "Species",
         }}
       />
-       <Tabs.Screen
+      <Tabs.Screen
         name="settings"
         options={{
-          title: 'Settings',
+          title: "Settings",
         }}
       />
     </Tabs>

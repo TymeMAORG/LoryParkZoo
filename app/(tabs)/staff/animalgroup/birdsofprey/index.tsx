@@ -1,25 +1,29 @@
 // /app/(tabs)/staff/animalgroup/birdsofprey/index.tsx
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import React from "react";
+import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { useRouter, useLocalSearchParams } from "expo-router";
 
 // Birds of prey data
 const birdsOfPrey = [
-  { id: 1, name: 'Sky', species: 'Bald Eagle', family: 'Accipitridae' },
-  { id: 2, name: 'Thor', species: 'Golden Eagle', family: 'Accipitridae' },
-  { id: 3, name: 'Zeus', species: 'Vulture', family: 'Accipitridae' },
-  { id: 4, name: 'Athena', species: 'Vulture', family: 'Accipitridae' },
-  { id: 5, name: 'Ares', species: 'Falcon', family: 'Falconidae' },
-  { id: 6, name: 'Apollo', species: 'Falcon', family: 'Falconidae' },
+  { id: 1, name: "Sky", species: "Bald Eagle", family: "Accipitridae" },
+  { id: 2, name: "Thor", species: "Golden Eagle", family: "Accipitridae" },
+  { id: 3, name: "Zeus", species: "Vulture", family: "Accipitridae" },
+  { id: 4, name: "Athena", species: "Vulture", family: "Accipitridae" },
+  { id: 5, name: "Ares", species: "Falcon", family: "Falconidae" },
+  { id: 6, name: "Apollo", species: "Falcon", family: "Falconidae" },
 ];
 
 export default function BirdsOfPreyHome() {
   const router = useRouter();
   const { username } = useLocalSearchParams();
 
-  const handleBirdSelect = (bird: { id?: React.Key | null | undefined; name: string; species: string }) => {
+  const handleBirdSelect = (bird: {
+    id?: React.Key | null | undefined;
+    name: string;
+    species: string;
+  }) => {
     router.push({
-      pathname: '/staff/animalgroup/birdsofprey/foodmonitoring',
+      pathname: "/staff/animalgroup/birdsofprey/foodmonitoring",
       params: {
         name: bird.name,
         species: bird.species,
@@ -28,13 +32,16 @@ export default function BirdsOfPreyHome() {
     });
   };
 
-  const groupedBirds = birdsOfPrey.reduce((acc: { [key: string]: typeof birdsOfPrey }, bird) => {
-    if (!acc[bird.family]) {
-      acc[bird.family] = [];
-    }
-    acc[bird.family].push(bird);
-    return acc;
-  }, {});
+  const groupedBirds = birdsOfPrey.reduce(
+    (acc: { [key: string]: typeof birdsOfPrey }, bird) => {
+      if (!acc[bird.family]) {
+        acc[bird.family] = [];
+      }
+      acc[bird.family].push(bird);
+      return acc;
+    },
+    {},
+  );
 
   return (
     <View style={styles.container}>
@@ -63,29 +70,29 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 16,
-    color: '#333',
+    color: "#333",
   },
   familyContainer: {
     marginBottom: 20,
   },
   familyTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 10,
-    color: '#555',
+    color: "#555",
   },
   animalContainer: {
     marginBottom: 10,
     padding: 12,
     borderRadius: 8,
-    backgroundColor: '#fff',
-    shadowColor: '#000',
+    backgroundColor: "#fff",
+    shadowColor: "#000",
     shadowOffset: {
       width: 0,
       height: 1,
@@ -96,6 +103,6 @@ const styles = StyleSheet.create({
   },
   animalText: {
     fontSize: 18,
-    color: '#333',
+    color: "#333",
   },
 });

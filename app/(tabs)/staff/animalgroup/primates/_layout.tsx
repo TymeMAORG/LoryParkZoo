@@ -1,6 +1,6 @@
-import React from 'react';
-import { Tabs } from 'expo-router';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import React from "react";
+import { Tabs } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
 
 export default function PrimateLayout() {
   return (
@@ -9,10 +9,10 @@ export default function PrimateLayout() {
         tabBarIcon: ({ color, size }) => {
           let iconName: any;
 
-          if (route.name === 'index') {
-            iconName = 'home';
-          } else if (route.name === 'profile') {
-            iconName = 'person';
+          if (route.name === "index") {
+            iconName = "home";
+          } else if (route.name === "profile") {
+            iconName = "person";
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -21,13 +21,13 @@ export default function PrimateLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Primates',
+          title: "Primates",
         }}
       />
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: "Profile",
         }}
       />
     </Tabs>
