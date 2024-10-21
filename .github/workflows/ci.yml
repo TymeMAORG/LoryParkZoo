@@ -40,33 +40,20 @@ jobs:
       - name: Install Dependencies
         run: npm install
 
-      - name: Set up JDK
-        uses: actions/setup-java@v3
-        with:
-          distribution: 'zulu'
-          java-version: '11'
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
 
-      - name: Install Android SDK
+      - name: Authenticate with EAS
+        env:
+          EAS_TOKEN: ${{ secrets.EAS_TOKEN }}
         run: |
-          sudo apt update
-          sudo apt install -y openjdk-11-jdk
-          mkdir -p $HOME/android-sdk
-          cd $HOME/android-sdk
-          wget https://dl.google.com/android/repository/commandlinetools-linux-6858069_latest.zip
-          unzip commandlinetools-linux-6858069_latest.zip
-          yes | $HOME/android-sdk/cmdline-tools/bin/sdkmanager --sdk_root=$HOME/android-sdk --install "platform-tools" "platforms;android-31"
+          echo $EAS_TOKEN | eas login --token
 
-      - name: Set up Android environment variables
-        run: |
-          echo "ANDROID_HOME=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "ANDROID_SDK_ROOT=$HOME/android-sdk" >> $GITHUB_ENV
-          echo "$HOME/android-sdk/platform-tools" >> $GITHUB_PATH
-          echo "$HOME/android-sdk/cmdline-tools/latest/bin" >> $GITHUB_PATH
+      - name: Configure EAS
+        run: eas build:configure
 
       - name: Build App
-        env:
-          ANDROID_SDK_ROOT: ${{ github.workspace }}/android-sdk
-        run: npx expo run:android --variant release
+        run: eas build --profile development --platform all
 
   test:
     name: Run Jest Tests

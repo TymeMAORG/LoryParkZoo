@@ -13,7 +13,8 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.TymeMa.LoryParkZoo"
     },
     "android": {
       "adaptiveIcon": {
@@ -32,6 +33,11 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "57b58963-1d32-4ffb-9e1c-91f3161dc4a4"
+      }
     }
   }
 }
