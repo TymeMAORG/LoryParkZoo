@@ -50,7 +50,7 @@ jobs:
           token: ${{ secrets.EAS_TOKEN }}
 
       - name: Configure EAS
-        run: eas build:configure
+        run: eas build:configure --non-interactive
 
       - name: Build App
         run: eas build --profile development --platform all
