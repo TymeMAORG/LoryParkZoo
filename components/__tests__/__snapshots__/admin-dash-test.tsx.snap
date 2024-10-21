@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`AdminDashboard renders the correct title and date 1`] = `
+<View
+  style={
+    {
+      "flex": 1,
+      "padding": 16,
+    }
+  }
+>
+  <Text
+    style={
+      {
+        "fontSize": 24,
+        "fontWeight": "bold",
+      }
+    }
+  >
+    Admin Dashboard
+  </Text>
+  <Text
+    style={
+      {
+        "fontSize": 18,
+        "marginTop": 8,
+      }
+    }
+  >
+    Monday, October 21
+  </Text>
+</View>
+`;
