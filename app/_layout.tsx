@@ -1,37 +1,56 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
+import { Stack } from "expo-router";
 import { useEffect } from 'react';
-import 'react-native-reanimated';
+import { useUserStore } from './index';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router } from 'expo-router';
 
-import { useColorScheme } from '@/hooks/useColorScheme';
-
-// Prevent the splash screen from auto-hiding before asset loading is complete.
-SplashScreen.preventAutoHideAsync();
-
-export default function RootLayout() {
-  const colorScheme = useColorScheme();
-  const [loaded] = useFonts({
-    SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
-  });
+export default function Layout() {
+  const setUser = useUserStore((state) => state.setUser);
 
   useEffect(() => {
-    if (loaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [loaded]);
+    // Check for stored user data on app launch
+    const checkUser = async () => {
+      try {
+        const userData = await AsyncStorage.getItem('user');
+        if (userData) {
+          const user = JSON.parse(userData);
+          setUser(user.username, user.section, user.isAdmin);
+          if (user.isAdmin) {
+            router.replace('admin/dashboard');
+          } else {
+            router.replace('staff/dashboard');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking user:', error);
+      }
+    };
 
-  if (!loaded) {
-    return null;
-  }
+    checkUser();
+  }, []);
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="+not-found" />
-      </Stack>
-    </ThemeProvider>
+    <Stack>
+      <Stack.Screen 
+        name="index" 
+        options={{
+          headerShown: false
+        }}
+      />
+      <Stack.Screen 
+        name="admin" 
+        options={{
+          headerShown: false,
+          gestureEnabled: false
+        }}
+      />
+      <Stack.Screen 
+        name="staff" 
+        options={{
+          headerShown: false,
+          gestureEnabled: false
+        }}
+      />
+    </Stack>
   );
 }
