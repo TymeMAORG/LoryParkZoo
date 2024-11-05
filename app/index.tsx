@@ -25,7 +25,7 @@ export const useUserStore = create<UserState>((set) => ({
 // Mock user data - in a real app, this would come from an API
 const MOCK_USERS = [
   { username: 'admin', section: 'all', isAdmin: true },
-  { username: 'john', section: 'big_cats', isAdmin: false },
+  { username: 'john', section: 'bigcats', isAdmin: false },
   { username: 'sarah', section: 'reptiles', isAdmin: false },
 ];
 
@@ -62,7 +62,7 @@ export default function Login() {
       if (user.isAdmin) {
         router.replace('/admin/dashboard');
       } else {
-        router.replace('/staff/dashboard');
+        router.replace('/staff/bigcats/');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to log in');

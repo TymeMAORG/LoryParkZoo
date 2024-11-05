@@ -16,11 +16,12 @@ export default function Layout() {
           const user = JSON.parse(userData);
           setUser(user.username, user.section, user.isAdmin);
           if (user.isAdmin) {
-            router.replace('admin/dashboard');
+            router.replace('/admin/dashboard');
           } else {
-            router.replace('staff/dashboard');
+            router.replace('./');
           }
         }
+
       } catch (error) {
         console.error('Error checking user:', error);
       }
@@ -30,7 +31,7 @@ export default function Layout() {
   }, []);
 
   return (
-    <Stack>
+    <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen 
         name="index" 
         options={{

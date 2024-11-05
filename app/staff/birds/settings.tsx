@@ -1,6 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useUserStore } from '../index';
+import { useUserStore } from '../../index';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 

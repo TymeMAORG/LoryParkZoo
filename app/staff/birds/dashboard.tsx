@@ -1,5 +1,5 @@
 import { View, Text, StyleSheet } from 'react-native';
-import { useUserStore } from '../index';
+import { useUserStore } from '../../index';
 
 export default function StaffDashboard() {
   const { username, section } = useUserStore();

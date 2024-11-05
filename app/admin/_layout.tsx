@@ -31,7 +31,7 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="forms"
         options={{
           title: 'Forms',
@@ -39,7 +39,7 @@ export default function AdminTabsLayout() {
             <MaterialIcons name="assignment" size={24} color={color} />
           ),
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="settings"
         options={{

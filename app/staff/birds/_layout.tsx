@@ -13,7 +13,7 @@ export default function StaffTabsLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="forms"
         options={{
           title: 'Forms',
@@ -21,7 +21,7 @@ export default function StaffTabsLayout() {
             <MaterialIcons name="assignment" size={24} color={color} />
           ),
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="settings"
         options={{
