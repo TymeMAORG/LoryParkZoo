@@ -1,36 +1,38 @@
-import { Tabs } from 'expo-router';
-import { MaterialIcons } from '@expo/vector-icons';
+import React from "react";
+import { Tabs } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
-export default function StaffTabsLayout() {
+export default function BirdsLayout() {
   return (
-    <Tabs>
+    <Tabs
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          let iconName: any;
+
+          if (route.name === "index") {
+            return (
+              <MaterialCommunityIcons name="bird" size={size} color={color} />
+            );
+          } else if (route.name === "profile") {
+            iconName = "person";
+          }
+          return <Ionicons name={iconName} size={size} color={color} />;
+        },
+      })}
+    >
       <Tabs.Screen
-        name="dashboard"
+        name="index"
         options={{
-          title: 'Dashboard',
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="dashboard" size={24} color={color} />
-          ),
+          title: "Birds",
         }}
       />
-      {/* <Tabs.Screen
-        name="forms"
-        options={{
-          title: 'Forms',
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="assignment" size={24} color={color} />
-          ),
-        }}
-      /> */}
       <Tabs.Screen
-        name="settings"
+        name="profile"
         options={{
-          title: 'Settings',
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="settings" size={24} color={color} />
-          ),
+          title: "Profile",
         }}
       />
     </Tabs>
   );
-} 
+}

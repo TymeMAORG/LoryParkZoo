@@ -16,7 +16,7 @@ export default function Layout() {
           const user = JSON.parse(userData);
           setUser(user.username, user.section, user.isAdmin);
           if (user.isAdmin) {
-            router.replace('/admin/dashboard');
+            router.replace('/admin/');
           } else {
             router.replace('./');
           }
@@ -45,13 +45,13 @@ export default function Layout() {
           gestureEnabled: false
         }}
       />
-      <Stack.Screen 
+      {/* <Stack.Screen 
         name="staff" 
         options={{
           headerShown: false,
           gestureEnabled: false
         }}
-      />
+      /> */}
     </Stack>
   );
 }

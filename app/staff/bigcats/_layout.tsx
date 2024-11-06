@@ -1,20 +1,54 @@
-import { Stack } from 'expo-router';
+import React from "react";
+import { Tabs } from "expo-router";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { Icon } from "react-native-elements";
 
 export default function BigCatsLayout() {
   return (
-    <Stack>
-      <Stack.Screen 
-        name="index" 
+    <Tabs
+      screenOptions={({ route }) => ({
+        tabBarIcon: ({ color, size }) => {
+          if (route.name === "foodmonitoring") {
+            return (
+              <Icon
+                name="restaurant"
+                type="material"
+                size={size}
+                color={color}
+              />
+            );
+          } else {
+            let iconName: any;
+            if (route.name === "index") {
+              return (
+                <Icon name="pets" type="material" size={size} color={color} />
+              );
+            } else if (route.name === "profile") {
+              iconName = "person";
+            }
+            return <Ionicons name={iconName} size={size} color={color} />;
+          }
+        },
+      })}
+    >
+      <Tabs.Screen
+        name="index"
         options={{
-          title: 'Big Cats Management',
-        }} 
+          title: "Big Cats",
+        }}
       />
-      <Stack.Screen 
-        name="details" 
+      <Tabs.Screen
+        name="foodmonitoring"
         options={{
-          title: 'Big Cat Details',
-        }} 
+          title: "Food Monitoring",
+        }}
       />
-    </Stack>
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: "Profile",
+        }}
+      />
+    </Tabs>
   );
-} 
+}

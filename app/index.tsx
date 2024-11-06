@@ -25,8 +25,11 @@ export const useUserStore = create<UserState>((set) => ({
 // Mock user data - in a real app, this would come from an API
 const MOCK_USERS = [
   { username: 'admin', section: 'all', isAdmin: true },
-  { username: 'john', section: 'bigcats', isAdmin: false },
-  { username: 'sarah', section: 'reptiles', isAdmin: false },
+  { username: 'kyle', section: 'bigcats', isAdmin: false },
+  { username: 'robynn', section: 'reptiles', isAdmin: false },
+  { username: 'jane', section: 'primates', isAdmin: false },
+  { username: 'john', section: 'birds', isAdmin: false },
+  { username: 'jeff', section: 'birdsofprey', isAdmin: false },
 ];
 
 export default function Login() {
@@ -60,9 +63,9 @@ export default function Login() {
       
       // Redirect based on user role
       if (user.isAdmin) {
-        router.replace('/admin/dashboard');
+        router.replace('/admin/');
       } else {
-        router.replace('/staff/bigcats/');
+        router.replace(`/staff/${user.section}` as any);
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to log in');
@@ -71,7 +74,7 @@ export default function Login() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Zoo Management System</Text>
+      <Text style={styles.title}>Lory Park Zoo Management</Text>
       <View style={styles.form}>
         <Text style={styles.label}>Staff ID / Username</Text>
         <TextInput

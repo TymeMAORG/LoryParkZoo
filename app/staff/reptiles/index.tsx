@@ -59,7 +59,7 @@ export default function ReptilesHome() {
     enclosure: any;
   }) => {
     router.push({
-      pathname: "/staff/animalgroup/reptiles/monitoring",
+      pathname: "/staff/reptiles/monitoring",
       params: {
         name: animal.name,
         species: animal.species,

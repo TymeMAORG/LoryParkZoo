@@ -4,8 +4,8 @@ import { useUserStore } from '../../index';
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 
-export default function StaffSettings() {
-  const { username, section, clearUser } = useUserStore();
+export default function StaffProfile() {
+  const { username, clearUser } = useUserStore();
 
   const handleLogout = async () => {
     Alert.alert(
@@ -35,8 +35,7 @@ export default function StaffSettings() {
       <View style={styles.userInfo}>
         <MaterialIcons name="account-circle" size={80} color="#2196F3" />
         <Text style={styles.username}>{username}</Text>
-        <Text style={styles.role}>Staff Member</Text>
-        <Text style={styles.section}>Section: {section}</Text>
+        <Text style={styles.role}>Staff / Big Cats</Text>
       </View>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
@@ -68,11 +67,6 @@ const styles = StyleSheet.create({
   role: {
     fontSize: 16,
     color: '#666',
-    marginTop: 5,
-  },
-  section: {
-    fontSize: 16,
-    color: '#2196F3',
     marginTop: 5,
   },
   logoutButton: {

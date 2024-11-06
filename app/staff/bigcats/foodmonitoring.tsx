@@ -1,37 +1,50 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
-import { useLocalSearchParams } from "expo-router";
-import ToastManager, { Toast } from "toastify-react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+} from "react-native";
 
-type BirdOfPrey = {
+// Define types for the big cats data and food intake state
+type BigCat = {
   name: string;
   species: string;
 };
 
 type FoodIntake = {
-  [birdName: string]: string;
+  [catName: string]: string;
 };
 
-const birdsOfPrey: BirdOfPrey[] = [
-  { name: "Sky", species: "Bald Eagle" },
-  { name: "Thor", species: "Golden Eagle" },
-  { name: "Zeus", species: "Vulture" },
-  { name: "Athena", species: "Vulture" },
-  { name: "Ares", species: "Falcon" },
-  { name: "Apollo", species: "Falcon" },
+const bigCats: BigCat[] = [
+  { name: "DANIEL", species: "LION" },
+  { name: "HEIN", species: "LION" },
+  { name: "AMBER", species: "LION" },
+  { name: "KIMBERLY", species: "TIGER" },
+  { name: "JUPITER", species: "JAGUAR" },
+  { name: "LEIA", species: "JAGUAR" },
+  { name: "JACK", species: "LEOPARD" },
+  { name: "JOHENSUU", species: "LEOPARD" },
+  { name: "KRASIK", species: "LYNX" },
+  { name: "DEBBY", species: "LYNX" },
 ];
 
 const foodOptions: string[] = ["All", "3/4", "1/2", "1/4", "None"];
 
-export default function FoodMonitoring() {
+export default function FoodMonitoringSheet() {
   const [foodIntake, setFoodIntake] = useState<FoodIntake>({});
   const [currentDate, setCurrentDate] = useState<string>("");
-  const { keeper } = useLocalSearchParams();
 
-  const showToast = () => {
-    Toast.success("Form Submitted Successfully!");
+  // Handle selection of food intake for each cat
+  const handleSelection = (catName: string, option: string) => {
+    setFoodIntake((prevState) => ({
+      ...prevState,
+      [catName]: option,
+    }));
   };
 
+  // Set the current date and time
   useEffect(() => {
     const today = new Date();
     const dateStr = today.toDateString();
@@ -39,41 +52,29 @@ export default function FoodMonitoring() {
     setCurrentDate(`${dateStr} - ${timeStr}`);
   }, []);
 
-  const handleSelection = (birdName: string, option: string) => {
-    setFoodIntake((prevState) => ({
-      ...prevState,
-      [birdName]: option,
-    }));
-  };
-
-  const handleSave = () => {
-    console.log("Date:", currentDate);
-    console.log("Keeper:", keeper);
-    console.log("Food Intake:", foodIntake);
-    showToast();
-  };
-
   return (
     <ScrollView style={styles.container}>
-      <ToastManager />
+      {/* Date and Time Header */}
       <View style={styles.header}>
         <Text style={styles.headerText}>
-          Daily Food Monitoring Sheet for Birds of Prey
+          Daily Food Monitoring Sheet for Big Cats
         </Text>
         <Text style={styles.dateText}>Date: {currentDate}</Text>
-        <Text style={styles.dateText}>Keeper: {keeper}</Text>
       </View>
 
+      {/* Table for Big Cats and Food Intake */}
       <View style={styles.table}>
+        {/* Header Row */}
         <View style={styles.row}>
           <Text style={[styles.cell, styles.headerCell]}>Name / Species</Text>
-          <Text style={[styles.cell, styles.headerCell]}>Leftover Food</Text>
+          <Text style={[styles.cell, styles.headerCell]}>Left Over food</Text>
         </View>
 
-        {birdsOfPrey.map((bird, index) => (
+        {/* Data Rows */}
+        {bigCats.map((cat, index) => (
           <View key={index} style={styles.row}>
-            <Text style={[styles.cell, styles.birdCell]}>
-              {bird.name} / {bird.species}
+            <Text style={[styles.cell, styles.catCell]}>
+              {cat.name} / {cat.species}
             </Text>
             <View style={styles.foodOptions}>
               {foodOptions.map((option, optionIndex) => (
@@ -81,14 +82,16 @@ export default function FoodMonitoring() {
                   key={optionIndex}
                   style={[
                     styles.optionButton,
-                    foodIntake[bird.name] === option && styles.selectedOption
+                    foodIntake[cat.name] === option && styles.selectedButton,
                   ]}
-                  onPress={() => handleSelection(bird.name, option)}
+                  onPress={() => handleSelection(cat.name, option)}
                 >
-                  <Text style={[
-                    styles.optionText,
-                    foodIntake[bird.name] === option && styles.selectedOptionText
-                  ]}>
+                  <Text
+                    style={[
+                      styles.optionText,
+                      foodIntake[cat.name] === option && styles.selectedText,
+                    ]}
+                  >
                     {option}
                   </Text>
                 </TouchableOpacity>
@@ -97,19 +100,16 @@ export default function FoodMonitoring() {
           </View>
         ))}
       </View>
-
-      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-        <Text style={styles.saveButtonText}>Save</Text>
-      </TouchableOpacity>
     </ScrollView>
   );
 }
 
+// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 16,
-    backgroundColor: "#f0f4f7",
+    backgroundColor: "#f0f4f7", // Light background color
   },
   header: {
     marginBottom: 15,
@@ -153,44 +153,31 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     textAlign: "center",
   },
-  birdCell: {
+  catCell: {
     fontSize: 16,
     fontWeight: "500",
     color: "#333",
   },
   foodOptions: {
-    flex: 1,
     flexDirection: "row",
     justifyContent: "space-around",
-    flexWrap: "wrap",
+    flex: 1,
   },
   optionButton: {
-    padding: 8,
-    margin: 2,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    backgroundColor: "#ddd",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 5,
+    marginHorizontal: 4,
   },
-  selectedOption: {
-    backgroundColor: "#007AFF",
+  selectedButton: {
+    backgroundColor: "#4CAF50", // Selected button background color
   },
   optionText: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#333",
   },
-  selectedOptionText: {
-    color: "#fff",
-  },
-  saveButton: {
-    marginTop: 20,
-    backgroundColor: "#007AFF",
-    padding: 15,
-    borderRadius: 8,
-    alignItems: "center",
-  },
-  saveButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+  selectedText: {
+    color: "#fff", // Selected text color
   },
 });

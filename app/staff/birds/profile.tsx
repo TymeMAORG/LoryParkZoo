@@ -35,7 +35,7 @@ export default function StaffProfile() {
       <View style={styles.userInfo}>
         <MaterialIcons name="account-circle" size={80} color="#2196F3" />
         <Text style={styles.username}>{username}</Text>
-        <Text style={styles.role}>Staff / Reptiles</Text>
+        <Text style={styles.role}>Staff / Birds</Text>
       </View>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
