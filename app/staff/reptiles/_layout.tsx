@@ -21,7 +21,6 @@ export default function ReptilesLayout() {
           }
           return <Ionicons name={iconName} size={size} color={color} />;
         },
-        headerShown: false,
       })}
     >
       <Tabs.Screen

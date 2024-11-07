@@ -23,7 +23,7 @@ export default function BirdsOfPreyHome() {
     species: string;
   }) => {
     router.push({
-      pathname: "/staff/animalgroup/birdsofprey/foodmonitoring",
+      pathname: "/staff/birdsofprey/foodmonitoring",
       params: {
         name: bird.name,
         species: bird.species,

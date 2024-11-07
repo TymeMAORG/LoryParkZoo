@@ -73,7 +73,7 @@ export default function ReptileRoomForm() {
     showToast();
     setFormData(initialFormData);
     setTimeout(() => {
-      router.push("/staff/animalgroup/reptiles");
+      router.push("/staff/reptiles/");
     }, 3000);
   };
 

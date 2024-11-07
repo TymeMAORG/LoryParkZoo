@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, ScrollView, Button } from "react-native";
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { Picker } from "@react-native-picker/picker";
 import ToastManager, { Toast } from "toastify-react-native";
 
-// Define types for the birds of prey data and food intake state
 type BirdOfPrey = {
   name: string;
   species: string;
@@ -52,7 +50,6 @@ export default function FoodMonitoring() {
     console.log("Date:", currentDate);
     console.log("Keeper:", keeper);
     console.log("Food Intake:", foodIntake);
-
     showToast();
   };
 
@@ -79,30 +76,31 @@ export default function FoodMonitoring() {
               {bird.name} / {bird.species}
             </Text>
             <View style={styles.foodOptions}>
-              <Picker
-                selectedValue={foodIntake[bird.name]}
-                style={styles.picker}
-                onValueChange={(itemValue: string) =>
-                  handleSelection(bird.name, itemValue)
-                }
-              >
-                {foodOptions.map((option, optionIndex) => (
-                  <Picker.Item
-                    key={optionIndex}
-                    label={option}
-                    value={option}
-                  />
-                ))}
-              </Picker>
+              {foodOptions.map((option, optionIndex) => (
+                <TouchableOpacity
+                  key={optionIndex}
+                  style={[
+                    styles.optionButton,
+                    foodIntake[bird.name] === option && styles.selectedOption
+                  ]}
+                  onPress={() => handleSelection(bird.name, option)}
+                >
+                  <Text style={[
+                    styles.optionText,
+                    foodIntake[bird.name] === option && styles.selectedOptionText
+                  ]}>
+                    {option}
+                  </Text>
+                </TouchableOpacity>
+              ))}
             </View>
           </View>
         ))}
       </View>
 
-      {/* Save button */}
-      <View style={styles.saveButton}>
-        <Button title="Save" onPress={handleSave} />
-      </View>
+      <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+        <Text style={styles.saveButtonText}>Save</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -162,14 +160,37 @@ const styles = StyleSheet.create({
   },
   foodOptions: {
     flex: 1,
-    justifyContent: "center",
+    flexDirection: "row",
+    justifyContent: "space-around",
+    flexWrap: "wrap",
   },
-  picker: {
-    height: 40,
-    width: 150,
+  optionButton: {
+    padding: 8,
+    margin: 2,
+    borderRadius: 4,
+    borderWidth: 1,
+    borderColor: "#ddd",
+  },
+  selectedOption: {
+    backgroundColor: "#007AFF",
+  },
+  optionText: {
+    fontSize: 12,
+    color: "#333",
+  },
+  selectedOptionText: {
+    color: "#fff",
   },
   saveButton: {
     marginTop: 20,
+    backgroundColor: "#007AFF",
+    padding: 15,
+    borderRadius: 8,
     alignItems: "center",
+  },
+  saveButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "bold",
   },
 });

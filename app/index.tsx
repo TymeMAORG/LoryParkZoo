@@ -1,84 +1,101 @@
-import React, { useState } from "react";
-import { View, TextInput, Button, StyleSheet, Text } from "react-native";
-import { Href, useRouter } from "expo-router";
+import { useState } from 'react';
+import { StyleSheet, View, TextInput, Text, TouchableOpacity, Alert } from 'react-native';
+import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'zustand';
 
-export default function LoginScreen() {
-  const users = [
-    { username: "admin", password: "admin", group: "admin" },
-    {
-      username: "bigcats",
-      password: "staff",
-      group: "staff",
-      animalsection: "bigcats",
-    },
-    {
-      username: "primates",
-      password: "staff",
-      group: "staff",
-      animalsection: "primates",
-    },
-    {
-      username: "reptiles",
-      password: "staff",
-      group: "staff",
-      animalsection: "reptiles",
-    },
-    {
-      username: "birds",
-      password: "staff",
-      group: "staff",
-      animalsection: "birds",
-    },
-    {
-      username: "birdsofprey",
-      password: "staff",
-      group: "staff",
-      animalsection: "birdsofprey",
-    },
-  ];
+// Define types for our user store
+interface UserState {
+  username: string;
+  section: string;
+  isAdmin: boolean;
+  setUser: (username: string, section: string, isAdmin: boolean) => void;
+  clearUser: () => void;
+}
 
-  const router = useRouter();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+// Create a global store for user state
+export const useUserStore = create<UserState>((set) => ({
+  username: '',
+  section: '',
+  isAdmin: false,
+  setUser: (username, section, isAdmin) => set({ username, section, isAdmin }),
+  clearUser: () => set({ username: '', section: '', isAdmin: false }),
+}));
 
-  const handleLogin = () => {
-    const user = users.find(
-      (u) => u.username === username && u.password === password,
+// Mock user data - in a real app, this would come from an API
+const MOCK_USERS = [
+  { username: 'admin', section: 'all', isAdmin: true },
+  { username: 'kyle', section: 'bigcats', isAdmin: false },
+  { username: 'robynn', section: 'reptiles', isAdmin: false },
+  { username: 'jane', section: 'primates', isAdmin: false },
+  { username: 'john', section: 'birds', isAdmin: false },
+  { username: 'jeff', section: 'birdsofprey', isAdmin: false },
+];
+
+export default function Login() {
+  const [username, setUsername] = useState('');
+  const [section, setSection] = useState('');
+  const setUser = useUserStore((state) => state.setUser);
+
+  const handleLogin = async () => {
+    if (!username || !section) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    const user = MOCK_USERS.find(
+      (u) => u.username.toLowerCase() === username.toLowerCase()
     );
-    if (user) {
-      if (user.group === "admin") {
-        router.push("/admin");
-      } else if (user.group === "staff") {
-        const path =
-          `/staff/animalgroup/${user.animalsection}?username=${username}` as Href<string>;
-        router.push(path);
+
+    if (!user) {
+      Alert.alert('Error', 'User not found');
+      return;
+    }
+
+    if (user.section !== section && user.section !== 'all') {
+      Alert.alert('Error', 'Invalid section for this user');
+      return;
+    }
+
+    try {
+      await AsyncStorage.setItem('user', JSON.stringify(user));
+      setUser(user.username, user.section, user.isAdmin);
+      
+      // Redirect based on user role
+      if (user.isAdmin) {
+        router.replace('/admin/');
+      } else {
+        router.replace(`/staff/${user.section}` as any);
       }
-    } else {
-      setError("Invalid credentials");
+    } catch (error) {
+      Alert.alert('Error', 'Failed to log in');
     }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Welcome to the LoryPark Zoo App</Text>
-      {error.length > 0 && <Text style={styles.error}>{error}</Text>}
-      <TextInput
-        placeholder="Username"
-        value={username}
-        onChangeText={setUsername}
-        style={styles.input}
-        autoCapitalize="none"
-        autoCorrect={false}
-      />
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        style={styles.input}
-        secureTextEntry
-      />
-      <Button title="Login" onPress={handleLogin} />
+      <Text style={styles.title}>Lory Park Zoo Management</Text>
+      <View style={styles.form}>
+        <Text style={styles.label}>Staff ID / Username</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your username"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+        <Text style={styles.label}>Section Code</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your section code"
+          value={section}
+          onChangeText={setSection}
+          autoCapitalize="none"
+        />
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -86,26 +103,52 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+    justifyContent: 'center',
     padding: 20,
-    backgroundColor: "#fff",
-    justifyContent: "center",
+    backgroundColor: '#f5f5f5',
   },
   title: {
-    fontSize: 32,
-    marginBottom: 24,
-    textAlign: "center",
+    fontSize: 24,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  form: {
+    backgroundColor: 'white',
+    padding: 20,
+    borderRadius: 10,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
   },
   input: {
     height: 50,
-    borderColor: "#ccc",
     borderWidth: 1,
-    marginBottom: 16,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    marginBottom: 15,
+    paddingHorizontal: 10,
   },
-  error: {
-    color: "red",
-    marginBottom: 16,
-    textAlign: "center",
+  button: {
+    backgroundColor: '#2196F3',
+    padding: 15,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  label: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 8,
+    fontWeight: '500',
   },
 });

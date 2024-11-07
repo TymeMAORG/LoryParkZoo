@@ -8,7 +8,7 @@ export default function BigCatsLayout() {
     <Tabs
       screenOptions={({ route }) => ({
         tabBarIcon: ({ color, size }) => {
-          if (route.name === "FoodMonitoringSheet") {
+          if (route.name === "foodmonitoring") {
             return (
               <Icon
                 name="restaurant"
@@ -38,15 +38,15 @@ export default function BigCatsLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile"
+        name="foodmonitoring"
         options={{
-          title: "Profile",
+          title: "Food Monitoring",
         }}
       />
       <Tabs.Screen
-        name="FoodMonitoringSheet"
+        name="profile"
         options={{
-          title: "Food Monitoring",
+          title: "Profile",
         }}
       />
     </Tabs>
