@@ -45,7 +45,7 @@ export default function Login() {
       if (!showPasswordInput) {
         setShowPasswordInput(true);
         return;
-      } else if (password !== 'admin123') {
+      } else if (password !== 'Admin123') {
         Alert.alert('Error', 'Invalid admin password');
         return;
       }

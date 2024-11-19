@@ -29,17 +29,9 @@ export default function AdminTabsLayout() {
           tabBarIcon: ({ color }) => (
             <MaterialIcons name="pets" size={24} color={color} />
           ),
+          href: '/admin/animals',
         }}
       />
-      {/* <Tabs.Screen
-        name="forms"
-        options={{
-          title: 'Forms',
-          tabBarIcon: ({ color }) => (
-            <MaterialIcons name="assignment" size={24} color={color} />
-          ),
-        }}
-      /> */}
       <Tabs.Screen
         name="settings"
         options={{
@@ -49,6 +41,8 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
+      
     </Tabs>
+
   );
 }

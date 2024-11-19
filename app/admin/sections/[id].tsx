@@ -1,108 +1,153 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View, Text, StyleSheet, TouchableOpacity,
-  TextInput, Modal, Alert, FlatList
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, Modal, TextInput } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
-import { ref, get, set, push, child } from 'firebase/database';
-import { database } from '../../firebaseConfig';
-import { router } from 'expo-router';
+import { ref, get, remove, set } from 'firebase/database';
+import { database } from '../../../firebaseConfig';
+import { useLocalSearchParams } from 'expo-router';
 
-interface Section {
+interface Animal {
   id: string;
   name: string;
+  species: string;
+  section: string;
+  health: string;
+  status: 'alive' | 'deceased';
 }
 
-export default function AnimalManagement() {
-  const [sections, setSections] = useState<Section[]>([]);
+export default function SectionAnimals() {
+  const { id } = useLocalSearchParams();
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [sectionName, setSectionName] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null);
   const [name, setName] = useState('');
   const [species, setSpecies] = useState('');
-  const [section, setSection] = useState('');
   const [health, setHealth] = useState('');
   const [status, setStatus] = useState<'alive' | 'deceased'>('alive');
 
   useEffect(() => {
-    fetchSections();
-  }, []);
+    fetchSectionAnimals();
+  }, [id, sectionName]);
 
-  const fetchSections = async () => {
-    const sectionsRef = ref(database, 'sections');
-    const snapshot = await get(sectionsRef);
-    if (snapshot.exists()) {
-      const sectionsData = snapshot.val();
-      const sectionsArray = Object.entries(sectionsData).map(([id, data]: [string, any]) => ({
-        id,
-        name: data.name,
-      }));
-      setSections(sectionsArray);
+  const fetchSectionAnimals = async () => {
+    const sectionRef = ref(database, `sections/${id}`);
+    const sectionSnapshot = await get(sectionRef);
+    if (sectionSnapshot.exists()) {
+      const sectionData = sectionSnapshot.val();
+      setSectionName(sectionData.name);
+
+      const animalsRef = ref(database, 'animals');
+      const snapshot = await get(animalsRef);
+      if (snapshot.exists()) {
+        const animalsData = snapshot.val();
+        const animalsArray = Object.entries(animalsData)
+          .map(([animalId, data]: [string, any]) => ({
+            id: animalId,
+            ...data,
+          }))
+          .filter((animal: Animal) => animal.section === sectionData.name);
+        setAnimals(animalsArray);
+      }
     }
   };
 
-  const handleAddAnimal = async () => {
-    if (!name || !species || !section || !health) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+  const handleDeleteAnimal = async (animalId: string) => {
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to remove this animal?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await remove(ref(database, `animals/${animalId}`));
+              fetchSectionAnimals();
+            } catch (error) {
+              console.error('Error deleting animal:', error);
+              Alert.alert('Error', 'Failed to delete animal');
+            }
+          },
+        },
+      ]
+    );
+  };
 
-    const newAnimal = {
+  const handleEditAnimal = (animal: Animal) => {
+    setEditingAnimal(animal);
+    setName(animal.name);
+    setSpecies(animal.species);
+    setHealth(animal.health);
+    setStatus(animal.status);
+    setModalVisible(true);
+  };
+
+  const handleUpdateAnimal = async () => {
+    if (!editingAnimal) return;
+
+    const updatedAnimal: Omit<Animal, 'id'> = {
       name,
       species,
-      section,
+      section: sectionName,
       health,
       status,
     };
 
     try {
-      const newAnimalRef = push(child(ref(database), 'animals'));
-      await set(newAnimalRef, newAnimal);
+      await set(ref(database, `animals/${editingAnimal.id}`), updatedAnimal);
       clearForm();
-      Alert.alert('Success', 'Animal added successfully');
+      fetchSectionAnimals();
     } catch (error) {
-      console.error('Error adding animal:', error);
-      Alert.alert('Error', 'Failed to add animal');
+      console.error('Error updating animal:', error);
+      Alert.alert('Error', 'Failed to update animal');
     }
   };
 
   const clearForm = () => {
     setName('');
     setSpecies('');
-    setSection('');
     setHealth('');
     setStatus('alive');
+    setEditingAnimal(null);
     setModalVisible(false);
   };
 
-  const navigateToSection = (sectionId: string) => {
-    router.push(`/admin/sections/${sectionId}` as any);
-  };
-
-  const renderItem = ({ item }: { item: Section }) => (
-    <TouchableOpacity
-      style={styles.sectionCard}
-      onPress={() => navigateToSection(item.id)}
-    >
-      <Text style={styles.sectionName}>{item.name}</Text>
-      <MaterialIcons name="chevron-right" size={24} color="#666" />
-    </TouchableOpacity>
+  const renderItem = ({ item }: { item: Animal }) => (
+    <View style={styles.animalCard}>
+      <View>
+        <Text style={styles.animalName}>{item.name}</Text>
+        <Text style={styles.animalSpecies}>{item.species}</Text>
+        <Text style={styles.animalHealth}>Health: {item.health}</Text>
+        <Text style={[styles.animalStatus, item.status === 'deceased' && styles.animalStatusDeceased]}>
+          Status: {item.status}
+        </Text>
+      </View>
+      <View style={styles.actionButtons}>
+        <TouchableOpacity
+          onPress={() => handleEditAnimal(item)}
+          style={styles.editButton}
+        >
+          <MaterialIcons name="edit" size={24} color="#2196F3" />
+        </TouchableOpacity>
+        <TouchableOpacity
+          onPress={() => handleDeleteAnimal(item.id)}
+          style={styles.deleteButton}
+        >
+          <MaterialIcons name="delete" size={24} color="#FF6B6B" />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => setModalVisible(true)}
-      >
-        <MaterialIcons name="add" size={24} color="white" />
-        <Text style={styles.addButtonText}>Add Animal</Text>
-      </TouchableOpacity>
-
+      <Text style={styles.sectionTitle}>{sectionName}</Text>
       <FlatList
-        data={sections}
+        data={animals}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
       />
-
       <Modal
         animationType="slide"
         transparent={true}
@@ -111,7 +156,7 @@ export default function AnimalManagement() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Add New Animal</Text>
+            <Text style={styles.modalTitle}>Edit Animal</Text>
             
             <Text style={styles.label}>Name</Text>
             <TextInput
@@ -128,29 +173,6 @@ export default function AnimalManagement() {
               onChangeText={setSpecies}
               placeholder="Enter species"
             />
-
-            <Text style={styles.label}>Section</Text>
-            <View style={styles.sectionPicker}>
-              {sections.map((s) => (
-                <TouchableOpacity
-                  key={s.id}
-                  style={[
-                    styles.sectionButton,
-                    section === s.name && styles.sectionButtonActive,
-                  ]}
-                  onPress={() => setSection(s.name)}
-                >
-                  <Text
-                    style={[
-                      styles.sectionButtonText,
-                      section === s.name && styles.sectionButtonTextActive,
-                    ]}
-                  >
-                    {s.name}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
 
             <Text style={styles.label}>Health Status</Text>
             <TextInput
@@ -205,9 +227,9 @@ export default function AnimalManagement() {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalButton, styles.saveButton]}
-                onPress={handleAddAnimal}
+                onPress={handleUpdateAnimal}
               >
-                <Text style={styles.buttonText}>Save</Text>
+                <Text style={styles.buttonText}>Update</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -223,39 +245,10 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f5f5f5',
   },
-  addButton: {
-    flexDirection: 'row',
-    backgroundColor: '#2196F3',
-    padding: 15,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 20,
-  },
-  addButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginLeft: 10,
-  },
   sectionTitle: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
-    marginTop: 20,
-  },
-  sectionCard: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    marginBottom: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  sectionName: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    marginBottom: 20,
   },
   animalCard: {
     backgroundColor: 'white',
@@ -273,11 +266,6 @@ const styles = StyleSheet.create({
   animalSpecies: {
     fontSize: 16,
     color: '#666',
-    marginTop: 2,
-  },
-  animalSection: {
-    fontSize: 14,
-    color: '#2196F3',
     marginTop: 2,
   },
   animalHealth: {
@@ -333,28 +321,6 @@ const styles = StyleSheet.create({
     padding: 10,
     borderRadius: 5,
     marginBottom: 15,
-  },
-  sectionPicker: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginBottom: 20,
-  },
-  sectionButton: {
-    padding: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    margin: 4,
-  },
-  sectionButtonActive: {
-    backgroundColor: '#2196F3',
-    borderColor: '#2196F3',
-  },
-  sectionButtonText: {
-    color: '#666',
-  },
-  sectionButtonTextActive: {
-    color: 'white',
   },
   statusPicker: {
     flexDirection: 'row',
