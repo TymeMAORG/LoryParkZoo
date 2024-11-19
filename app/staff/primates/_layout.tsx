@@ -11,10 +11,10 @@ export default function PrimateLayout() {
 
           if (route.name === "index") {
             iconName = "home";
-          } else if (route.name === "profile") {
-            iconName = "person";
           } else if (route.name === "feeding") {
             iconName = "nutrition";
+          } else if (route.name === "profile") {
+            iconName = "person";
           }
 
           return <Ionicons name={iconName} size={size} color={color} />;
@@ -26,12 +26,12 @@ export default function PrimateLayout() {
         options={{ title: "Primates" }}
       />
       <Tabs.Screen
-        name="profile"
-        options={{ title: "Profile" }}
-      />
-      <Tabs.Screen
         name="feeding" // It will look for feeding.tsx in the same folder
         options={{ title: "Record Feeding" }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{ title: "Profile" }}
       />
     </Tabs>
   );

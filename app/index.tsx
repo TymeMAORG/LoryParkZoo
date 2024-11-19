@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, TextInput, Text, TouchableOpacity, Alert } from 'react-native';
 import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
+import { ref, get, DataSnapshot } from 'firebase/database';
+import { database } from '../firebaseConfig';
 
-// Define types for our user store
 interface UserState {
   username: string;
   section: string;
@@ -13,7 +14,11 @@ interface UserState {
   clearUser: () => void;
 }
 
-// Create a global store for user state
+interface User {
+  username: string;
+  section: string;
+}
+
 export const useUserStore = create<UserState>((set) => ({
   username: '',
   section: '',
@@ -22,19 +27,11 @@ export const useUserStore = create<UserState>((set) => ({
   clearUser: () => set({ username: '', section: '', isAdmin: false }),
 }));
 
-// Mock user data - in a real app, this would come from an API
-const MOCK_USERS = [
-  { username: 'admin', section: 'all', isAdmin: true },
-  { username: 'kyle', section: 'bigcats', isAdmin: false },
-  { username: 'robynn', section: 'reptiles', isAdmin: false },
-  { username: 'jane', section: 'primates', isAdmin: false },
-  { username: 'john', section: 'birds', isAdmin: false },
-  { username: 'jeff', section: 'birdsofprey', isAdmin: false },
-];
-
 export default function Login() {
   const [username, setUsername] = useState('');
   const [section, setSection] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPasswordInput, setShowPasswordInput] = useState(false);
   const setUser = useUserStore((state) => state.setUser);
 
   const handleLogin = async () => {
@@ -43,31 +40,44 @@ export default function Login() {
       return;
     }
 
-    const user = MOCK_USERS.find(
-      (u) => u.username.toLowerCase() === username.toLowerCase()
-    );
-
-    if (!user) {
-      Alert.alert('Error', 'User not found');
+    // Check for admin login first
+    if (username.toLowerCase() === 'admin' && section.toLowerCase() === 'admin') {
+      if (!showPasswordInput) {
+        setShowPasswordInput(true);
+        return;
+      } else if (password !== 'admin123') {
+        Alert.alert('Error', 'Invalid admin password');
+        return;
+      }
+      setUser('admin', 'admin', true);
+      await AsyncStorage.setItem('user', JSON.stringify({ username: 'admin', section: 'admin' }));
+      router.replace('/admin/');
       return;
     }
 
-    if (user.section !== section && user.section !== 'all') {
-      Alert.alert('Error', 'Invalid section for this user');
-      return;
-    }
-
+    // Non-admin login process
     try {
-      await AsyncStorage.setItem('user', JSON.stringify(user));
-      setUser(user.username, user.section, user.isAdmin);
-      
-      // Redirect based on user role
-      if (user.isAdmin) {
-        router.replace('/admin/');
-      } else {
+      const snapshot: DataSnapshot = await get(ref(database, 'staff'));
+      const staffData = snapshot.val();
+      if (staffData) {
+        const users: User[] = Object.values(staffData);
+        const user = users.find(
+          (u: User) => u.username.toLowerCase() === username.toLowerCase()
+        );
+
+        if (!user || user.section !== section) {
+          Alert.alert('Error', 'Invalid username or section code');
+          return;
+        }
+
+        setUser(user.username, user.section, false);
+        await AsyncStorage.setItem('user', JSON.stringify(user));
         router.replace(`/staff/${user.section}` as any);
+      } else {
+        Alert.alert('Error', 'No users found');
       }
     } catch (error) {
+      console.error('Login error:', error);
       Alert.alert('Error', 'Failed to log in');
     }
   };
@@ -92,6 +102,18 @@ export default function Login() {
           onChangeText={setSection}
           autoCapitalize="none"
         />
+        {showPasswordInput && (
+          <>
+            <Text style={styles.label}>Admin Password</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="Enter admin password"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+            />
+          </>
+        )}
         <TouchableOpacity style={styles.button} onPress={handleLogin}>
           <Text style={styles.buttonText}>Login</Text>
         </TouchableOpacity>

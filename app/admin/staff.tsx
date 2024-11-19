@@ -1,9 +1,8 @@
-import { useState } from 'react';
-import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Modal, Alert, FlatList
-} from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, FlatList } from 'react-native';
+import { getDatabase, ref, push, set, onValue, remove, update } from 'firebase/database';
+import { database } from '../../firebaseConfig';
 
 interface StaffMember {
   id: string;
@@ -12,18 +11,29 @@ interface StaffMember {
   username: string;
 }
 
-const SECTIONS = ['big_cats', 'reptiles', 'primates', 'birds', 'aquatic'];
+const SECTIONS = ['bigcats', 'reptiles', 'primates', 'birds', 'birdsofprey'];
 
 export default function StaffManagement() {
-  const [staff, setStaff] = useState<StaffMember[]>([
-    { id: '1', name: 'John Doe', section: 'big_cats', username: 'john' },
-    { id: '2', name: 'Sarah Smith', section: 'reptiles', username: 'sarah' },
-  ]);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [section, setSection] = useState('');
+
+  useEffect(() => {
+    const staffRef = ref(database, 'staff');
+    onValue(staffRef, (snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        const formattedStaff = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key],
+        }));
+        setStaff(formattedStaff);
+      }
+    });
+  }, []);
 
   const handleAddStaff = () => {
     if (!name || !username || !section) {
@@ -31,15 +41,13 @@ export default function StaffManagement() {
       return;
     }
 
-    const newStaff = {
-      id: Date.now().toString(),
-      name,
-      username,
-      section,
-    };
-
-    setStaff([...staff, newStaff]);
-    clearForm();
+    const newStaffRef = push(ref(database, 'staff'));
+    set(newStaffRef, { name, username, section })
+      .then(() => {
+        Alert.alert('Success', 'Staff member added!');
+        clearForm();
+      })
+      .catch((error) => Alert.alert('Error', error.message));
   };
 
   const handleEditStaff = (staffMember: StaffMember) => {
@@ -53,31 +61,27 @@ export default function StaffManagement() {
   const handleUpdateStaff = () => {
     if (!editingStaff) return;
 
-    const updatedStaff = staff.map(s => 
-      s.id === editingStaff.id 
-        ? { ...s, name, username, section }
-        : s
-    );
-
-    setStaff(updatedStaff);
-    clearForm();
+    update(ref(database, `staff/${editingStaff.id}`), { name, username, section })
+      .then(() => {
+        Alert.alert('Success', 'Staff member updated!');
+        clearForm();
+      })
+      .catch((error) => Alert.alert('Error', error.message));
   };
 
   const handleDeleteStaff = (id: string) => {
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to remove this staff member?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            setStaff(staff.filter(s => s.id !== id));
-          },
+    Alert.alert('Confirm Delete', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: () => {
+          remove(ref(database, `staff/${id}`))
+            .then(() => Alert.alert('Success', 'Staff member deleted!'))
+            .catch((error) => Alert.alert('Error', error.message));
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const clearForm = () => {
