@@ -70,7 +70,7 @@ export default function FoodMonitoringSheet() {
   // Save food intake data to Firebase
   const saveDataToFirebase = async () => {
     try {
-      const foodMonitoringRef = ref(database, "Big Cat FoodMonitoring Sheet");
+      const foodMonitoringRef = ref(database, "BigCats FoodMonitoring Sheet");
       await set(foodMonitoringRef, {
         date: currentDate,
         foodIntake,

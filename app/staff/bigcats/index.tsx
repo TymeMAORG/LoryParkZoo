@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   View,
@@ -6,10 +6,13 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
+  Alert,
 } from "react-native";
 import DraggableFlatList, {
   RenderItemParams,
 } from "react-native-draggable-flatlist";
+import { ref, push, set, get } from "firebase/database";
+import { database } from "../../../firebaseConfig"; // Update with your Firebase config
 
 // Define task type
 type Task = { id: string; text: string };
@@ -27,6 +30,13 @@ export default function BigCatsHome() {
     doing: [],
     done: [],
   });
+  const [currentDate, setCurrentDate] = useState<string>("");
+
+  // Set the current date
+  useEffect(() => {
+    const today = new Date();
+    setCurrentDate(today.toISOString().split('T')[0]); // Format date as YYYY-MM-DD
+  }, []);
 
   // Handle adding a new task to "To Do"
   const addTask = () => {
@@ -46,6 +56,22 @@ export default function BigCatsHome() {
       const newTo = [...prevTasks[to], task];
       return { ...prevTasks, [from]: newFrom, [to]: newTo };
     });
+  };
+
+  // Save temperature and tasks to Firebase with the date as the key
+  const saveDataToFirebase = async () => {
+    try {
+      const newRecordRef = ref(database, `BigCats Index Form/${currentDate}`); // Use date as the key
+      await set(newRecordRef, {
+        temperature: temperature,
+        tasks: tasks,
+      });
+
+      Alert.alert("Success", "Data saved to Firebase!");
+    } catch (error) {
+      console.error("Error saving data to Firebase:", error);
+      Alert.alert("Error", "Failed to save data.");
+    }
   };
 
   return (
@@ -126,6 +152,10 @@ export default function BigCatsHome() {
             ))}
           </View>
         </View>
+
+        <TouchableOpacity style={styles.saveButton} onPress={saveDataToFirebase}>
+          <Text style={styles.buttonText}>Save Data</Text>
+        </TouchableOpacity>
       </View>
     </GestureHandlerRootView>
   );
@@ -216,5 +246,16 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     marginBottom: 4,
     alignItems: "center",
+  },
+  saveButton: {
+    backgroundColor: "#3498db",
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  buttonText: {
+    fontSize: 16,
+    color: "#ffffff",
+    fontWeight: "bold",
   },
 });
