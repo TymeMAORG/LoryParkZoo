@@ -5,44 +5,54 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  Alert,
 } from "react-native";
+import { ref, get, set } from "firebase/database";
+import { database } from "../../../firebaseConfig";
 
-// Define types for the big cats data and food intake state
 type BigCat = {
+  id: string;
   name: string;
   species: string;
+  section: string;
 };
 
-type FoodIntake = {
+type FoodIntakeState = {
   [catName: string]: string;
 };
 
-const bigCats: BigCat[] = [
-  { name: "DANIEL", species: "LION" },
-  { name: "HEIN", species: "LION" },
-  { name: "AMBER", species: "LION" },
-  { name: "KIMBERLY", species: "TIGER" },
-  { name: "JUPITER", species: "JAGUAR" },
-  { name: "LEIA", species: "JAGUAR" },
-  { name: "JACK", species: "LEOPARD" },
-  { name: "JOHENSUU", species: "LEOPARD" },
-  { name: "KRASIK", species: "LYNX" },
-  { name: "DEBBY", species: "LYNX" },
-];
-
-const foodOptions: string[] = ["All", "3/4", "1/2", "1/4", "None"];
+const foodOptions = ["All", "3/4", "1/2", "1/4", "None"];
 
 export default function FoodMonitoringSheet() {
-  const [foodIntake, setFoodIntake] = useState<FoodIntake>({});
+  const [bigCats, setBigCats] = useState<BigCat[]>([]);
+  const [foodIntake, setFoodIntake] = useState<FoodIntakeState>({});
   const [currentDate, setCurrentDate] = useState<string>("");
 
-  // Handle selection of food intake for each cat
-  const handleSelection = (catName: string, option: string) => {
-    setFoodIntake((prevState) => ({
-      ...prevState,
-      [catName]: option,
-    }));
-  };
+  // Fetch only "Big Cats" animals dynamically from Firebase
+  useEffect(() => {
+    const fetchBigCats = async () => {
+      try {
+        const animalsRef = ref(database, "animals");
+        const snapshot = await get(animalsRef);
+        if (snapshot.exists()) {
+          const data = snapshot.val();
+          const filteredCats = Object.keys(data)
+            .map((key) => ({
+              id: key,
+              ...data[key],
+            }))
+            .filter((cat) => cat.section === "Big Cats"); // Filter for "Big Cats"
+          setBigCats(filteredCats);
+        } else {
+          console.error("No animals found in the database.");
+        }
+      } catch (error) {
+        console.error("Error fetching big cats:", error);
+      }
+    };
+
+    fetchBigCats();
+  }, []);
 
   // Set the current date and time
   useEffect(() => {
@@ -52,27 +62,39 @@ export default function FoodMonitoringSheet() {
     setCurrentDate(`${dateStr} - ${timeStr}`);
   }, []);
 
+  // Handle selection of food intake for each cat
+  const handleSelection = (catName: string, option: string) => {
+    setFoodIntake((prev) => ({ ...prev, [catName]: option }));
+  };
+
+  // Save food intake data to Firebase
+  const saveDataToFirebase = async () => {
+    try {
+      const foodMonitoringRef = ref(database, "Big Cat FoodMonitoring Sheet");
+      await set(foodMonitoringRef, {
+        date: currentDate,
+        foodIntake,
+      });
+      Alert.alert("Success", "Food intake data saved successfully.");
+    } catch (error) {
+      console.error("Error saving data:", error);
+      Alert.alert("Error", "Failed to save data.");
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
-      {/* Date and Time Header */}
       <View style={styles.header}>
-        <Text style={styles.headerText}>
-          Daily Food Monitoring Sheet for Big Cats
-        </Text>
+        <Text style={styles.headerText}>Daily Food Monitoring Sheet</Text>
         <Text style={styles.dateText}>Date: {currentDate}</Text>
       </View>
-
-      {/* Table for Big Cats and Food Intake */}
       <View style={styles.table}>
-        {/* Header Row */}
         <View style={styles.row}>
           <Text style={[styles.cell, styles.headerCell]}>Name / Species</Text>
-          <Text style={[styles.cell, styles.headerCell]}>Left Over food</Text>
+          <Text style={[styles.cell, styles.headerCell]}>Leftover Food</Text>
         </View>
-
-        {/* Data Rows */}
-        {bigCats.map((cat, index) => (
-          <View key={index} style={styles.row}>
+        {bigCats.map((cat) => (
+          <View key={cat.id} style={styles.row}>
             <Text style={[styles.cell, styles.catCell]}>
               {cat.name} / {cat.species}
             </Text>
@@ -99,12 +121,14 @@ export default function FoodMonitoringSheet() {
             </View>
           </View>
         ))}
+        <TouchableOpacity style={styles.saveButton} onPress={saveDataToFirebase}>
+          <Text style={styles.saveButtonText}>Save</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
-// Styles
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -179,5 +203,17 @@ const styles = StyleSheet.create({
   },
   selectedText: {
     color: "#fff", // Selected text color
+  },
+  saveButton: {
+    marginTop: 20,
+    alignSelf: "center",
+    backgroundColor: "#4CAF50",
+    padding: 10,
+    borderRadius: 5,
+  },
+  saveButtonText: {
+    color: "white",
+    fontWeight: "bold",
+    fontSize: 16,
   },
 });

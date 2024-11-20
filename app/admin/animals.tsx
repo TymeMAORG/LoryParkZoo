@@ -217,6 +217,8 @@ export default function AnimalManagement() {
   );
 }
 
+
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
