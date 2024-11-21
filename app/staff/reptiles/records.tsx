@@ -9,7 +9,6 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
-  Share,
 } from "react-native";
 import { ref, get, update, onValue, off } from "firebase/database";
 import { database } from "../../../firebaseConfig";
@@ -45,66 +44,6 @@ type GroupedRecords = {
   };
 };
 
-const generateReport = (records: GroupedRecords): string => {
-  let report = `Reptile Monitoring Records Report\n`;
-  report += `Generated: ${new Date().toLocaleString()}\n\n`;
-
-  Object.entries(records)
-    .sort((a, b) => b[0].localeCompare(a[0]))
-    .forEach(([date, reptileRecords]) => {
-      report += `Date: ${new Date(date).toDateString()}\n`;
-      report += `==========================================\n\n`;
-
-      Object.entries(reptileRecords).forEach(([reptile, monitoringRecords]) => {
-        const firstRecord = Object.values(monitoringRecords)[0];
-        report += `${reptile} (${firstRecord.species})\n`;
-        report += `Enclosure: ${firstRecord.enclosure}\n`;
-        report += `------------------------------------------\n`;
-
-        Object.values(monitoringRecords).forEach((record) => {
-          report += `Time: ${new Date(record.timestamp).toLocaleTimeString()}\n`;
-          report += `Temperature: ${record.temperature}°C\n`;
-          report += `Humidity: ${record.humidity}%\n`;
-          report += `Health Status: ${record.health}\n`;
-          
-          if (record.foodOfferedQuantity) {
-            report += `Food Offered: ${record.foodOfferedQuantity} ${record.foodType}\n`;
-          }
-          if (record.foodTaken) {
-            report += `Food Taken: ${record.foodTaken}\n`;
-          }
-
-          const conditions = [
-            record.regurgitating && 'Regurgitating',
-            record.faeces && 'Faeces',
-            record.inBlue && 'In Blue',
-            record.shed && 'Shedding',
-            record.clean && 'Clean',
-            record.urine && 'Urine',
-            record.water && 'Water',
-          ].filter(Boolean);
-
-          if (conditions.length > 0) {
-            report += `Conditions: ${conditions.join(', ')}\n`;
-          }
-
-          if (record.observation) {
-            report += `Observations: ${record.observation}\n`;
-          }
-
-          if (record.lastEdited) {
-            report += `Last Edited: ${new Date(record.lastEdited).toLocaleString()}\n`;
-          }
-
-          report += `\n`;
-        });
-        report += `\n`;
-      });
-    });
-
-  return report;
-};
-
 export default function ReptileRecords() {
   const [records, setRecords] = useState<GroupedRecords>({});
   const [loading, setLoading] = useState(true);
@@ -121,35 +60,6 @@ export default function ReptileRecords() {
   const [editedHumidity, setEditedHumidity] = useState("");
   const [editedFoodOffered, setEditedFoodOffered] = useState("");
   const [editedFoodTaken, setEditedFoodTaken] = useState("");
-
-  const exportRecords = async () => {
-    try {
-      if (Object.keys(records).length === 0) {
-        Alert.alert('No Data', 'No records available to export');
-        return;
-      }
-
-      const reportText = generateReport(records);
-
-      const result = await Share.share({
-        message: reportText,
-        title: 'Reptile Monitoring Records Report',
-      });
-
-      if (result.action === Share.sharedAction) {
-        if (result.activityType) {
-          console.log('Shared with activity type:', result.activityType);
-        } else {
-          console.log('Shared successfully');
-        }
-      } else if (result.action === Share.dismissedAction) {
-        console.log('Share dismissed');
-      }
-    } catch (error) {
-      console.error('Error exporting records:', error);
-      Alert.alert('Error', 'Failed to export records');
-    }
-  };
 
   useEffect(() => {
     console.log('Setting up real-time listener for reptile monitoring records');
@@ -262,13 +172,6 @@ export default function ReptileRecords() {
     <>
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Monitoring Records</Text>
-        <TouchableOpacity 
-          style={styles.exportButton}
-          onPress={exportRecords}
-        >
-          <Ionicons name="share-outline" size={20} color="white" />
-          <Text style={styles.exportButtonText}>Share Records</Text>
-        </TouchableOpacity>
         {Object.entries(records)
           .sort((a, b) => b[0].localeCompare(a[0]))
           .map(([date, reptileRecords]) => (
@@ -598,28 +501,5 @@ const styles = StyleSheet.create({
     fontStyle: "italic",
     marginTop: 5,
     textAlign: "right",
-  },
-  exportButton: {
-    backgroundColor: '#2ecc71',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  exportButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 8,
   },
 }); 

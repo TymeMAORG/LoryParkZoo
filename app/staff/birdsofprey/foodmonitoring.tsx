@@ -7,7 +7,6 @@ import {
   ScrollView,
   Alert,
   TextInput,
-  Share,
 } from "react-native";
 import { ref, get, set, onValue, off } from "firebase/database";
 import { database } from "../../../firebaseConfig";
@@ -39,23 +38,6 @@ type DailyReport = {
 };
 
 const foodOptions = ["All", "3/4", "1/2", "1/4", "None"];
-
-const generateReport = (data: DailyReport, birds: Bird[]): string => {
-  const date = new Date(data.timestamp).toLocaleString();
-  
-  let report = `Birds of Prey Food Monitoring Report\n`;
-  report += `Date: ${date}\n\n`;
-  report += `Food Intake Records:\n`;
-  report += `------------------\n\n`;
-
-  birds.forEach(bird => {
-    const intake = data.foodIntake[bird.name] || 'Not recorded';
-    report += `${bird.name} (${bird.species})\n`;
-    report += `Leftover Food: ${intake}\n\n`;
-  });
-
-  return report;
-};
 
 export default function FoodMonitoringSheet() {
   const [birds, setBirds] = useState<Bird[]>([]);
@@ -339,50 +321,6 @@ export default function FoodMonitoringSheet() {
     </View>
   );
 
-  const exportDailyReport = async () => {
-    if (!isOnline) {
-      Alert.alert('Error', 'Cannot export report while offline');
-      return;
-    }
-
-    try {
-      const today = new Date().toISOString().split('T')[0];
-      const reportRef = ref(database, `BirdsOfPrey FoodMonitoring Sheet/${today}`);
-      const snapshot = await get(reportRef);
-
-      if (!snapshot.exists()) {
-        Alert.alert('No Data', 'No food monitoring record exists for today');
-        return;
-      }
-
-      const data = snapshot.val();
-      const reportText = generateReport(data, birds);
-
-      try {
-        const result = await Share.share({
-          message: reportText,
-          title: `Food Monitoring Report - ${today}`,
-        });
-
-        if (result.action === Share.sharedAction) {
-          if (result.activityType) {
-            console.log('Shared with activity type:', result.activityType);
-          } else {
-            console.log('Shared successfully');
-          }
-        } else if (result.action === Share.dismissedAction) {
-          console.log('Share dismissed');
-        }
-      } catch (error) {
-        Alert.alert('Error', 'Failed to share report');
-        console.error('Share error:', error);
-      }
-    } catch (error) {
-      console.error('Error exporting report:', error);
-      Alert.alert('Error', 'Failed to export report');
-    }
-  };
-
   if (birds.length === 0) {
     return (
       <View style={[styles.container, styles.centerContent]}>
@@ -399,13 +337,6 @@ export default function FoodMonitoringSheet() {
           <Text style={styles.successText}>✓ Data saved successfully!</Text>
         </View>
       )}
-      <TouchableOpacity 
-        style={styles.exportButton}
-        onPress={exportDailyReport}
-      >
-        <Ionicons name="share-outline" size={20} color="white" />
-        <Text style={styles.exportButtonText}>Share Report</Text>
-      </TouchableOpacity>
       {renderWarningMessage()}
       <View style={styles.header}>
         <Text style={styles.headerText}>Daily Food Monitoring Sheet</Text>
@@ -673,28 +604,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#666',
-  },
-  exportButton: {
-    backgroundColor: '#2ecc71',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 15,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
-  exportButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 8,
   },
 });
