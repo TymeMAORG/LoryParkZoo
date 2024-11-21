@@ -1,261 +1,553 @@
 import React, { useState, useEffect } from "react";
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
-  TouchableOpacity,
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TextInput, 
+  TouchableOpacity, 
   Alert,
+  FlatList,
+  Modal
 } from "react-native";
-import DraggableFlatList, {
-  RenderItemParams,
-} from "react-native-draggable-flatlist";
-import { ref, push, set, get } from "firebase/database";
-import { database } from "../../../firebaseConfig"; // Update with your Firebase config
+import { ref, push, set, onValue, off } from "firebase/database";
+import { database } from "../../../firebaseConfig";
+import { Ionicons } from '@expo/vector-icons';
 
-// Define task type
-type Task = { id: string; text: string };
-type TasksState = {
-  todo: Task[];
-  doing: Task[];
-  done: Task[];
-};
+interface Animal {
+  id: string;
+  name: string;
+  species: string;
+  coatPattern: string;
+  age: string;
+  sex: string;
+  health: string;
+  status: string;
+  dateAdded: string;
+}
+
+type HealthStatus = 'Healthy' | 'Unhealthy/Ill' | 'Convalescing';
 
 export default function BigCatsHome() {
-  const [temperature, setTemperature] = useState(""); // State for temperature input
-  const [taskText, setTaskText] = useState(""); // State for task input text
-  const [tasks, setTasks] = useState<TasksState>({
-    todo: [],
-    doing: [],
-    done: [],
-  });
-  const [currentDate, setCurrentDate] = useState<string>("");
+  const [name, setName] = useState("");
+  const [species, setSpecies] = useState("");
+  const [coatPattern, setCoatPattern] = useState("");
+  const [age, setAge] = useState("");
+  const [sex, setSex] = useState<"male" | "female" | "">("");
+  const [healthStatus, setHealthStatus] = useState<HealthStatus>('Healthy');
+  const [modalVisible, setModalVisible] = useState(false);
+  const [animals, setAnimals] = useState<Animal[]>([]);
+  const [editingAnimal, setEditingAnimal] = useState<Animal | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
-  // Set the current date
   useEffect(() => {
-    const today = new Date();
-    setCurrentDate(today.toISOString().split('T')[0]); // Format date as YYYY-MM-DD
+    const animalsRef = ref(database, 'animals');
+    console.log('Setting up real-time listener for BigCats');
+    
+    const unsubscribe = onValue(animalsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        console.log('Received data:', data);
+        
+        const bigCatsArray = Object.entries(data)
+          .map(([id, animal]: [string, any]) => ({
+            id,
+            ...animal
+          }))
+          .filter(animal => {
+            console.log('Checking animal:', animal);
+            return animal.section === "BigCats";
+          });
+        
+        console.log('Filtered BigCats:', bigCatsArray);
+        setAnimals(bigCatsArray);
+      } else {
+        console.log('No data in snapshot');
+        setAnimals([]);
+      }
+    }, (error) => {
+      console.error('Error in real-time listener:', error);
+    });
+
+    return () => {
+      console.log('Cleaning up listener');
+      off(animalsRef);
+    };
   }, []);
 
-  // Handle adding a new task to "To Do"
-  const addTask = () => {
-    if (taskText.trim()) {
-      setTasks((prevTasks) => ({
-        ...prevTasks,
-        todo: [...prevTasks.todo, { id: Date.now().toString(), text: taskText }],
-      }));
-      setTaskText(""); // Clear input field
+  const handleSave = async () => {
+    if (!name.trim() || !species.trim() || !coatPattern.trim() || !age || !sex || !healthStatus) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
     }
-  };
 
-  // Handle moving a task between sections
-  const moveTask = (task: Task, from: keyof TasksState, to: keyof TasksState) => {
-    setTasks((prevTasks) => {
-      const newFrom = prevTasks[from].filter((t) => t.id !== task.id);
-      const newTo = [...prevTasks[to], task];
-      return { ...prevTasks, [from]: newFrom, [to]: newTo };
-    });
-  };
-
-  // Save temperature and tasks to Firebase with the date as the key
-  const saveDataToFirebase = async () => {
     try {
-      const newRecordRef = ref(database, `BigCats Index Form/${currentDate}`); // Use date as the key
-      await set(newRecordRef, {
-        temperature: temperature,
-        tasks: tasks,
-      });
+      const timestamp = new Date().toISOString();
+      const animalData = {
+        name: name.trim(),
+        species: species.trim(),
+        coatPattern: coatPattern.trim(),
+        health: healthStatus,
+        section: "BigCats",
+        status: "Alive",
+        age,
+        sex,
+        dateAdded: timestamp
+      };
 
-      Alert.alert("Success", "Data saved to Firebase!");
+      console.log('Saving big cat with data:', animalData);
+
+      const animalsRef = ref(database, 'animals');
+      const newAnimalRef = push(animalsRef);
+      await set(newAnimalRef, animalData);
+      
+      setModalVisible(false);
+      clearForm();
+      Alert.alert("Success", "Big cat added successfully");
     } catch (error) {
-      console.error("Error saving data to Firebase:", error);
-      Alert.alert("Error", "Failed to save data.");
+      console.error("Error saving big cat:", error);
+      Alert.alert("Error", "Failed to save big cat data");
     }
   };
+
+  const handleEdit = (animal: Animal) => {
+    setEditingAnimal(animal);
+    setName(animal.name);
+    setSpecies(animal.species);
+    setCoatPattern(animal.coatPattern);
+    setAge(animal.age);
+    setSex(animal.sex as "male" | "female");
+    setHealthStatus(animal.health as HealthStatus);
+    setIsEditing(true);
+    setModalVisible(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!editingAnimal) return;
+
+    if (!name.trim() || !species.trim() || !coatPattern.trim() || !age || !sex || !healthStatus) {
+      Alert.alert("Error", "Please fill in all fields");
+      return;
+    }
+
+    try {
+      const timestamp = new Date().toISOString();
+      const updatedAnimal = {
+        name,
+        species,
+        coatPattern,
+        health: healthStatus,
+        section: "BigCats",
+        status: editingAnimal.status,
+        age,
+        sex,
+        dateAdded: editingAnimal.dateAdded,
+        lastUpdated: timestamp
+      };
+
+      const animalRef = ref(database, `animals/${editingAnimal.id}`);
+      await set(animalRef, updatedAnimal);
+      
+      setModalVisible(false);
+      setIsEditing(false);
+      setEditingAnimal(null);
+      clearForm();
+      Alert.alert("Success", "Big cat updated successfully");
+    } catch (error) {
+      Alert.alert("Error", "Failed to update big cat");
+    }
+  };
+
+  const clearForm = () => {
+    setName("");
+    setSpecies("");
+    setCoatPattern("");
+    setAge("");
+    setSex("");
+    setHealthStatus('Healthy');
+  };
+
+  const renderAnimalCard = ({ item }: { item: Animal }) => (
+    <View style={styles.card}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardName}>{item.name}</Text>
+        <View style={styles.cardActions}>
+          <TouchableOpacity 
+            style={styles.editButton}
+            onPress={() => handleEdit(item)}
+          >
+            <Ionicons name="pencil" size={20} color="#3498db" />
+          </TouchableOpacity>
+          <Text style={[styles.statusBadge, 
+            { backgroundColor: item.status === 'Alive' ? '#2ecc71' : '#e74c3c' }
+          ]}>
+            {item.status}
+          </Text>
+        </View>
+      </View>
+      <View style={styles.cardDetails}>
+        <Text style={styles.cardText}>Species: {item.species}</Text>
+        <Text style={styles.cardText}>Coat/Pattern: {item.coatPattern}</Text>
+        <Text style={styles.cardText}>Age: {item.age}</Text>
+        <Text style={styles.cardText}>Sex: {item.sex}</Text>
+        <Text style={[
+          styles.healthStatus,
+          item.health === 'Healthy' && styles.healthyStatus,
+          item.health === 'Unhealthy/Ill' && styles.unhealthyStatus,
+          item.health === 'Convalescing' && styles.convalescingStatus,
+        ]}>
+          Health: {item.health}
+        </Text>
+      </View>
+    </View>
+  );
 
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Big Cats Home</Text>
+    <View style={styles.container}>
+      <TouchableOpacity 
+        style={styles.addButton}
+        onPress={() => setModalVisible(true)}
+      >
+        <Text style={styles.addButtonText}>Add New Big Cat</Text>
+      </TouchableOpacity>
 
-        {/* Temperature Input */}
-        <View style={styles.temperatureContainer}>
-          <Text style={styles.subtitle}>Enter Temperature (°C):</Text>
-          <TextInput
-            style={styles.input}
-            keyboardType="numeric"
-            placeholder="e.g. 25"
-            value={temperature}
-            onChangeText={(text) => setTemperature(text)}
-          />
-        </View>
+      <FlatList
+        data={animals}
+        renderItem={renderAnimalCard}
+        keyExtractor={(item) => item.id}
+        style={styles.list}
+      />
 
-        {/* Task Management Sections */}
-        <View style={styles.taskContainer}>
-          <Text style={styles.subtitle}>Task Management</Text>
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => {
+          setModalVisible(false);
+          setIsEditing(false);
+          setEditingAnimal(null);
+          clearForm();
+        }}
+      >
+        <View style={styles.modalContainer}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>
+              {isEditing ? 'Edit Big Cat' : 'Add New Big Cat'}
+            </Text>
 
-          {/* Add Task Input */}
-          <View style={styles.addTaskContainer}>
+            <Text style={styles.modalLabel}>Name</Text>
             <TextInput
-              style={[styles.input, styles.taskInput]}
-              placeholder="Enter a task"
-              value={taskText}
-              onChangeText={(text) => setTaskText(text)}
+              style={styles.modalInput}
+              value={name}
+              onChangeText={setName}
+              placeholder="Enter big cat name"
+              maxLength={50}
             />
-            <TouchableOpacity style={[styles.addButton, styles.taskInput]} onPress={addTask}>
-              <Text style={styles.addButtonText}>Add Task</Text>
-            </TouchableOpacity>
-          </View>
 
-          {/* Task Sections */}
-          <View style={styles.sectionsContainer}>
-            {(["todo", "doing", "done"] as Array<keyof TasksState>).map((section) => (
-              <View key={section} style={styles.section}>
-                <Text
+            <Text style={styles.modalLabel}>Species</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={species}
+              onChangeText={setSpecies}
+              placeholder="e.g., Lion, Tiger"
+              maxLength={100}
+            />
+
+            <Text style={styles.modalLabel}>Coat/Pattern</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={coatPattern}
+              onChangeText={setCoatPattern}
+              placeholder="e.g., Striped, Spotted"
+              maxLength={100}
+            />
+
+            <Text style={styles.modalLabel}>Age</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={age}
+              onChangeText={setAge}
+              placeholder="Enter age"
+              keyboardType="decimal-pad"
+            />
+
+            <Text style={styles.modalLabel}>Sex</Text>
+            <View style={styles.sexPicker}>
+              <TouchableOpacity
+                style={[
+                  styles.sexButton,
+                  sex === "male" && styles.selectedSexButton
+                ]}
+                onPress={() => setSex("male")}
+              >
+                <Text style={[
+                  styles.sexButtonText,
+                  sex === "male" && styles.selectedSexButtonText
+                ]}>Male</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[
+                  styles.sexButton,
+                  sex === "female" && styles.selectedSexButton
+                ]}
+                onPress={() => setSex("female")}
+              >
+                <Text style={[
+                  styles.sexButtonText,
+                  sex === "female" && styles.selectedSexButtonText
+                ]}>Female</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.modalLabel}>Health Status</Text>
+            <View style={styles.healthPicker}>
+              {(['Healthy', 'Unhealthy/Ill', 'Convalescing'] as HealthStatus[]).map((status) => (
+                <TouchableOpacity
+                  key={status}
                   style={[
-                    styles.sectionTitle,
-                    section === "todo" && styles.todoTitle,
-                    section === "doing" && styles.doingTitle,
-                    section === "done" && styles.doneTitle,
+                    styles.healthButton,
+                    status === 'Healthy' && styles.healthyButton,
+                    status === 'Unhealthy/Ill' && styles.unhealthyButton,
+                    status === 'Convalescing' && styles.convalescingButton,
+                    healthStatus === status && styles.selectedHealthButton,
+                    healthStatus === status && status === 'Healthy' && styles.healthyButtonSelected,
+                    healthStatus === status && status === 'Unhealthy/Ill' && styles.unhealthyButtonSelected,
+                    healthStatus === status && status === 'Convalescing' && styles.convalescingButtonSelected,
                   ]}
+                  onPress={() => setHealthStatus(status)}
                 >
-                  {section.toUpperCase()}
+                  <Text
+                    style={[
+                      styles.healthButtonText,
+                      healthStatus === status && styles.selectedHealthButtonText,
+                    ]}
+                  >
+                    {status}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <View style={styles.modalButtons}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => {
+                  setModalVisible(false);
+                  setIsEditing(false);
+                  setEditingAnimal(null);
+                  clearForm();
+                }}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalSaveButton]}
+                onPress={isEditing ? handleUpdate : handleSave}
+              >
+                <Text style={styles.modalButtonText}>
+                  {isEditing ? 'Update' : 'Save'}
                 </Text>
-                <View style={styles.sectionBorder}>
-                  <DraggableFlatList
-                    data={tasks[section]}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({ item, drag }: RenderItemParams<Task>) => (
-                      <TouchableOpacity
-                        style={styles.taskItem}
-                        onLongPress={drag}
-                        onPress={() => {
-                          const nextSection =
-                            section === "todo"
-                              ? "doing"
-                              : section === "doing"
-                              ? "done"
-                              : "todo";
-                          moveTask(item, section, nextSection);
-                        }}
-                      >
-                        <Text>{item.text}</Text>
-                      </TouchableOpacity>
-                    )}
-                    onDragEnd={({ data }) =>
-                      setTasks((prevTasks) => ({ ...prevTasks, [section]: data }))
-                    }
-                  />
-                </View>
-              </View>
-            ))}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
-
-        <TouchableOpacity style={styles.saveButton} onPress={saveDataToFirebase}>
-          <Text style={styles.buttonText}>Save Data</Text>
-        </TouchableOpacity>
-      </View>
-    </GestureHandlerRootView>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 16,
+    padding: 20,
+    backgroundColor: "#f5f5f5",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 16,
-  },
-  temperatureContainer: {
-    marginBottom: 24,
-  },
-  subtitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    marginBottom: 8,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#ccc",
-    padding: 8,
-    borderRadius: 5,
-  },
-  taskInput: {
+  list: {
     flex: 1,
-    height: 40, // Ensures both input and button have the same height
-  },
-  taskContainer: {
-    flex: 1,
-  },
-  addTaskContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 16,
   },
   addButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 5,
-    justifyContent: "center",
-    alignItems: "center",
-    height: 40,
-    width: "20%", // Matches the width and height of input field
-  },
-  addButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-  },
-  sectionsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  section: {
-    flex: 1,
-    marginHorizontal: 4,
-  },
-  sectionBorder: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 5,
-    padding: 8,
-    backgroundColor: "#f9f9f9",
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 8,
-    textAlign: "center",
-  },
-  todoTitle: {
-    color: "red",
-  },
-  doingTitle: {
-    color: "orange",
-  },
-  doneTitle: {
-    color: "green",
-  },
-  taskItem: {
-    padding: 8,
-    backgroundColor: "#fff",
-    borderRadius: 5,
-    marginBottom: 4,
-    alignItems: "center",
-  },
-  saveButton: {
     backgroundColor: "#3498db",
     padding: 15,
     borderRadius: 8,
+    marginBottom: 20,
     alignItems: "center",
   },
-  buttonText: {
+  addButtonText: {
+    color: "white",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  card: {
+    backgroundColor: "white",
+    borderRadius: 8,
+    padding: 15,
+    marginBottom: 10,
+    elevation: 2,
+  },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  cardName: {
+    fontSize: 18,
+    fontWeight: "bold",
+  },
+  cardDetails: {
+    gap: 5,
+  },
+  cardText: {
+    fontSize: 14,
+    color: "#666",
+  },
+  statusBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    color: "white",
+    fontSize: 12,
+    fontWeight: "bold",
+  },
+  healthStatus: {
+    padding: 5,
+    borderRadius: 5,
+  },
+  healthyStatus: {
+    backgroundColor: '#2ecc7133',
+  },
+  unhealthyStatus: {
+    backgroundColor: '#e74c3c33',
+  },
+  convalescingStatus: {
+    backgroundColor: '#f1c40f33',
+  },
+  modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  modalContent: {
+    backgroundColor: 'white',
+    borderRadius: 10,
+    padding: 20,
+    width: '90%',
+    maxHeight: '90%',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    textAlign: 'center',
+  },
+  modalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 5,
+  },
+  modalInput: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 5,
+    padding: 10,
+    marginBottom: 15,
+  },
+  sexPicker: {
+    flexDirection: "row",
+    marginBottom: 15,
+    gap: 10,
+  },
+  sexButton: {
+    flex: 1,
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#bdc3c7",
+    alignItems: "center",
+  },
+  selectedSexButton: {
+    backgroundColor: "#3498db",
+    borderColor: "#3498db",
+  },
+  sexButtonText: {
+    fontSize: 16,
+    color: "#34495e",
+  },
+  selectedSexButtonText: {
+    color: "white",
+  },
+  healthPicker: {
+    flexDirection: "column",
+    marginBottom: 20,
+    gap: 10,
+  },
+  healthButton: {
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+    backgroundColor: "white",
+  },
+  healthyButton: {
+    borderColor: "#2ecc71",
+    backgroundColor: "#ffffff",
+  },
+  healthyButtonSelected: {
+    backgroundColor: "#2ecc71",
+  },
+  unhealthyButton: {
+    borderColor: "#e74c3c",
+    backgroundColor: "#ffffff",
+  },
+  unhealthyButtonSelected: {
+    backgroundColor: "#e74c3c",
+  },
+  convalescingButton: {
+    borderColor: "#f1c40f",
+    backgroundColor: "#ffffff",
+  },
+  convalescingButtonSelected: {
+    backgroundColor: "#f1c40f",
+  },
+  selectedHealthButton: {
+    borderWidth: 0,
+  },
+  healthButtonText: {
+    fontSize: 16,
+    color: "#34495e",
+  },
+  selectedHealthButtonText: {
     color: "#ffffff",
     fontWeight: "bold",
+  },
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+  },
+  modalButton: {
+    flex: 1,
+    padding: 15,
+    borderRadius: 5,
+    marginHorizontal: 5,
+  },
+  cancelButton: {
+    backgroundColor: '#95a5a6',
+  },
+  modalSaveButton: {
+    backgroundColor: '#2ecc71',
+  },
+  modalButtonText: {
+    color: 'white',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  },
+  cardActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  editButton: {
+    padding: 5,
   },
 });

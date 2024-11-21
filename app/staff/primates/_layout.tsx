@@ -30,9 +30,19 @@ export default function PrimateLayout() {
         options={{ title: "Record Feeding" }}
       />
       <Tabs.Screen
+        name="records"
+        options={{
+          title: "Feeding Records",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="list-outline" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{ title: "Profile" }}
       />
+      
     </Tabs>
   );
 }

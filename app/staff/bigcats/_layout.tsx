@@ -17,6 +17,15 @@ export default function BigCatsLayout() {
                 color={color}
               />
             );
+          } else if (route.name === "taskmanagement") {
+            return (
+              <Icon
+                name="assignment"
+                type="material"
+                size={size}
+                color={color}
+              />
+            );
           } else {
             let iconName: any;
             if (route.name === "index") {
@@ -41,6 +50,12 @@ export default function BigCatsLayout() {
         name="foodmonitoring"
         options={{
           title: "Food Monitoring",
+        }}
+      />
+      <Tabs.Screen
+        name="taskmanagement"
+        options={{
+          title: "Tasks",
         }}
       />
       <Tabs.Screen

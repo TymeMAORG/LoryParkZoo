@@ -6,8 +6,9 @@ import {
   StyleSheet,
   ScrollView,
   Alert,
+  TextInput,
 } from "react-native";
-import { ref, get, set } from "firebase/database";
+import { ref, get, set, onValue, off } from "firebase/database";
 import { database } from "../../../firebaseConfig";
 
 type BigCat = {
@@ -27,32 +28,77 @@ export default function FoodMonitoringSheet() {
   const [bigCats, setBigCats] = useState<BigCat[]>([]);
   const [foodIntake, setFoodIntake] = useState<FoodIntakeState>({});
   const [currentDate, setCurrentDate] = useState<string>("");
+  const [temperature, setTemperature] = useState("");
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [showFoodIntakeError, setShowFoodIntakeError] = useState(false);
+  const [existingRecord, setExistingRecord] = useState(false);
+  const [recordedCats, setRecordedCats] = useState<Set<string>>(new Set());
 
-  // Fetch only "Big Cats" animals dynamically from Firebase
+  // Replace the fetchBigCats useEffect with real-time listener
   useEffect(() => {
-    const fetchBigCats = async () => {
-      try {
-        const animalsRef = ref(database, "animals");
-        const snapshot = await get(animalsRef);
-        if (snapshot.exists()) {
-          const data = snapshot.val();
-          const filteredCats = Object.keys(data)
-            .map((key) => ({
-              id: key,
-              ...data[key],
-            }))
-            .filter((cat) => cat.section === "Big Cats"); // Filter for "Big Cats"
-          setBigCats(filteredCats);
+    const animalsRef = ref(database, "animals");
+    const unsubscribe = onValue(animalsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const filteredCats = Object.keys(data)
+          .map((key) => ({
+            id: key,
+            ...data[key],
+          }))
+          .filter((cat) => cat.section === "BigCats");
+        
+        if (filteredCats.length === 0) {
+          console.log("No big cats found in database");
         } else {
-          console.error("No animals found in the database.");
+          console.log(`Found ${filteredCats.length} big cats`);
         }
-      } catch (error) {
-        console.error("Error fetching big cats:", error);
+        
+        setBigCats(filteredCats);
+      } else {
+        console.log("No animals found in the database.");
+        setBigCats([]);
       }
-    };
+    }, (error) => {
+      console.error("Error fetching big cats:", error);
+      Alert.alert(
+        "Error",
+        "Failed to load big cats. Please check your connection and try again."
+      );
+    });
 
-    fetchBigCats();
+    // Cleanup subscription on unmount
+    return () => off(animalsRef);
   }, []);
+
+  // Modify the real-time updates for existing food monitoring data
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const foodMonitoringRef = ref(database, `BigCats FoodMonitoring Sheet/${today}`);
+    
+    const unsubscribe = onValue(foodMonitoringRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        setTemperature(data.temperature.toString());
+        
+        // Get the names of cats that have records
+        const recordedCatsSet = new Set(Object.keys(data.foodIntake || {}));
+        setRecordedCats(recordedCatsSet);
+        
+        // Only set food intake for recorded cats
+        setFoodIntake(data.foodIntake || {});
+        
+        // Set existingRecord only if ALL cats have been recorded
+        setExistingRecord(recordedCatsSet.size === bigCats.length);
+      } else {
+        setExistingRecord(false);
+        setTemperature("");
+        setFoodIntake({});
+        setRecordedCats(new Set());
+      }
+    });
+
+    return () => off(foodMonitoringRef);
+  }, [bigCats.length]);
 
   // Set the current date and time
   useEffect(() => {
@@ -62,67 +108,258 @@ export default function FoodMonitoringSheet() {
     setCurrentDate(`${dateStr} - ${timeStr}`);
   }, []);
 
+  // Modify the Firebase connection test
+  useEffect(() => {
+    const testConnection = async () => {
+      try {
+        // First verify we can write data
+        const testRef = ref(database, 'connectionTest');
+        await set(testRef, {
+          lastChecked: new Date().toISOString(),
+          status: 'connected'
+        });
+        
+        // Then verify we can read it back
+        const snapshot = await get(testRef);
+        if (snapshot.exists()) {
+          console.log('Firebase connection working properly:', snapshot.val());
+        } else {
+          console.log('Firebase connected but unable to read/write data');
+        }
+      } catch (error) {
+        console.error('Firebase connection error:', error);
+      }
+    };
+    
+    testConnection();
+  }, []);
+
   // Handle selection of food intake for each cat
   const handleSelection = (catName: string, option: string) => {
+    if (recordedCats.has(catName)) return; // Prevent selection if cat is already recorded
+    
     setFoodIntake((prev) => ({ ...prev, [catName]: option }));
+    setShowFoodIntakeError(false);
   };
 
-  // Save food intake data to Firebase
+  // Add temperature validation
+  const validateTemperature = (temp: string): boolean => {
+    if (!temp || temp.trim() === '') {
+      return false;
+    }
+    const tempNum = parseFloat(temp);
+    return !isNaN(tempNum) && tempNum >= -50 && tempNum <= 50;
+  };
+
+  // Modify saveDataToFirebase to check for existing records
   const saveDataToFirebase = async () => {
+    if (existingRecord) {
+      Alert.alert(
+        "Record Exists",
+        "A food monitoring record already exists for today. Please wait for the next day to submit a new record."
+      );
+      return;
+    }
+
+    // Check for empty temperature first
+    if (!temperature || temperature.trim() === '') {
+      Alert.alert(
+        "Required Field", 
+        "Temperature reading is required. Please enter a temperature value."
+      );
+      return;
+    }
+
+    // Then validate temperature range
+    if (!validateTemperature(temperature)) {
+      Alert.alert(
+        "Invalid Temperature", 
+        "Please enter a valid temperature between -50°C and 50°C"
+      );
+      return;
+    }
+
+    // Check if all cats have food intake recorded
+    const missingFoodIntake = bigCats.some(cat => !foodIntake[cat.name]);
+    if (missingFoodIntake) {
+      setShowFoodIntakeError(true);
+      Alert.alert(
+        "Required Field", 
+        "Please record food intake for all animals"
+      );
+      return;
+    }
+
     try {
-      const foodMonitoringRef = ref(database, "BigCats FoodMonitoring Sheet");
-      await set(foodMonitoringRef, {
-        date: currentDate,
-        foodIntake,
+      const dateKey = new Date().toISOString().split('T')[0];
+      const timestamp = new Date().toISOString();
+      const foodMonitoringRef = ref(database, `BigCats FoodMonitoring Sheet/${dateKey}`);
+      
+      const monitoringData = {
+        timestamp,
+        date: dateKey,
+        temperature: parseFloat(temperature),
+        foodIntake
+      };
+
+      // Save to Firebase
+      await set(foodMonitoringRef, monitoringData);
+
+      // Save to temperature history
+      const temperatureHistoryRef = ref(
+        database, 
+        `BigCats Temperature History/${dateKey}`
+      );
+      
+      await set(temperatureHistoryRef, {
+        temperature: parseFloat(temperature),
+        timestamp
       });
-      Alert.alert("Success", "Food intake data saved successfully.");
+
+      // Clear the form
+      setFoodIntake({});
+      setTemperature("");
+      
+      // Show success message
+      setShowSuccess(true);
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setShowSuccess(false);
+      }, 3000);
     } catch (error) {
       console.error("Error saving data:", error);
-      Alert.alert("Error", "Failed to save data.");
+      Alert.alert(
+        "Error", 
+        "Failed to save data. Please check your connection and try again."
+      );
     }
   };
 
+  // Add warning message when record exists
+  const renderWarningMessage = () => {
+    if (existingRecord) {
+      return (
+        <View style={styles.warningMessage}>
+          <Text style={styles.warningText}>
+            ⚠️ A food monitoring record already exists for today
+          </Text>
+        </View>
+      );
+    }
+    return null;
+  };
+
+  // Modify the render of each cat's food options
+  const renderCatFoodOptions = (cat: BigCat) => {
+    const isRecorded = recordedCats.has(cat.name);
+    
+    return (
+      <View key={cat.id} style={[
+        styles.row,
+        showFoodIntakeError && !foodIntake[cat.name] && !isRecorded && styles.errorRow,
+        isRecorded && styles.recordedRow
+      ]}>
+        <Text style={[styles.cell, styles.catCell]}>
+          {cat.name} / {cat.species}
+          {isRecorded && <Text style={styles.recordedBadge}> (Recorded)</Text>}
+        </Text>
+        <View style={styles.foodOptions}>
+          {foodOptions.map((option, optionIndex) => (
+            <TouchableOpacity
+              key={optionIndex}
+              style={[
+                styles.optionButton,
+                foodIntake[cat.name] === option && styles.selectedButton,
+                showFoodIntakeError && !foodIntake[cat.name] && !isRecorded && styles.errorButton,
+                isRecorded && styles.disabledButton,
+                isRecorded && foodIntake[cat.name] === option && styles.recordedSelectedButton
+              ]}
+              onPress={() => handleSelection(cat.name, option)}
+              disabled={isRecorded}
+            >
+              <Text
+                style={[
+                  styles.optionText,
+                  foodIntake[cat.name] === option && styles.selectedText,
+                  isRecorded && styles.disabledText,
+                  isRecorded && foodIntake[cat.name] === option && styles.recordedSelectedText
+                ]}
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+    );
+  };
+
+  // Add a loading state when no big cats are found
+  if (bigCats.length === 0) {
+    return (
+      <View style={[styles.container, styles.centerContent]}>
+        <Text style={styles.messageText}>No big cats found. Please add big cats first.</Text>
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={styles.container}>
+      {showSuccess && (
+        <View style={styles.successMessage}>
+          <Text style={styles.successText}>✓ Data saved successfully!</Text>
+        </View>
+      )}
+      {renderWarningMessage()}
       <View style={styles.header}>
         <Text style={styles.headerText}>Daily Food Monitoring Sheet</Text>
         <Text style={styles.dateText}>Date: {currentDate}</Text>
       </View>
+      <View style={styles.temperatureContainer}>
+        <Text style={styles.subtitle}>Enter Temperature (°C): <Text style={styles.required}>*</Text></Text>
+        <TextInput
+          style={[
+            styles.input,
+            !temperature && styles.requiredInput,
+            existingRecord && styles.disabledInput
+          ]}
+          keyboardType="numeric"
+          placeholder="e.g. 25"
+          value={temperature}
+          onChangeText={setTemperature}
+          editable={!existingRecord}
+        />
+      </View>
       <View style={styles.table}>
         <View style={styles.row}>
           <Text style={[styles.cell, styles.headerCell]}>Name / Species</Text>
-          <Text style={[styles.cell, styles.headerCell]}>Leftover Food</Text>
+          <Text style={[styles.cell, styles.headerCell]}>
+            Leftover Food <Text style={styles.required}>*</Text>
+          </Text>
         </View>
-        {bigCats.map((cat) => (
-          <View key={cat.id} style={styles.row}>
-            <Text style={[styles.cell, styles.catCell]}>
-              {cat.name} / {cat.species}
-            </Text>
-            <View style={styles.foodOptions}>
-              {foodOptions.map((option, optionIndex) => (
-                <TouchableOpacity
-                  key={optionIndex}
-                  style={[
-                    styles.optionButton,
-                    foodIntake[cat.name] === option && styles.selectedButton,
-                  ]}
-                  onPress={() => handleSelection(cat.name, option)}
-                >
-                  <Text
-                    style={[
-                      styles.optionText,
-                      foodIntake[cat.name] === option && styles.selectedText,
-                    ]}
-                  >
-                    {option}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-        ))}
-        <TouchableOpacity style={styles.saveButton} onPress={saveDataToFirebase}>
-          <Text style={styles.saveButtonText}>Save</Text>
+        {bigCats.map(renderCatFoodOptions)}
+        
+        {showFoodIntakeError && (
+          <Text style={styles.errorText}>
+            Please select leftover food for all unrecorded animals
+          </Text>
+        )}
+
+        <TouchableOpacity 
+          style={[
+            styles.button, 
+            styles.saveButton,
+            existingRecord && styles.disabledSaveButton
+          ]} 
+          onPress={saveDataToFirebase}
+          disabled={existingRecord}
+        >
+          <Text style={[
+            styles.buttonText,
+            existingRecord && styles.disabledButtonText
+          ]}>
+            Save
+          </Text>
         </TouchableOpacity>
       </View>
     </ScrollView>
@@ -195,7 +432,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   selectedButton: {
-    backgroundColor: "#4CAF50", // Selected button background color
+    backgroundColor: "#3498db", // Selected button background color
   },
   optionText: {
     fontSize: 14,
@@ -204,16 +441,130 @@ const styles = StyleSheet.create({
   selectedText: {
     color: "#fff", // Selected text color
   },
-  saveButton: {
+  button: {
+    padding: 15,
+    borderRadius: 8,
+    alignItems: "center",
     marginTop: 20,
-    alignSelf: "center",
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    borderRadius: 5,
   },
-  saveButtonText: {
+  saveButton: {
+    backgroundColor: "#3498db", // Changed to match the add button color in index
+    alignSelf: "center",
+    paddingHorizontal: 30,
+  },
+  buttonText: {
     color: "white",
-    fontWeight: "bold",
     fontSize: 16,
+    fontWeight: "bold",
+  },
+  temperatureContainer: {
+    marginBottom: 15,
+  },
+  subtitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 5,
+    padding: 10,
+    marginTop: 5,
+  },
+  centerContent: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  messageText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+  },
+  required: {
+    color: '#e74c3c',
+    fontSize: 16,
+  },
+  requiredInput: {
+    borderColor: '#e74c3c',
+  },
+  successMessage: {
+    backgroundColor: '#2ecc71',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 15,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+  },
+  successText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  errorRow: {
+    backgroundColor: '#ffebee',
+  },
+  errorButton: {
+    borderColor: '#e74c3c',
+  },
+  errorText: {
+    color: '#e74c3c',
+    fontSize: 14,
+    textAlign: 'center',
+    marginTop: 10,
+    fontWeight: '500',
+  },
+  warningMessage: {
+    backgroundColor: '#fff3cd',
+    padding: 10,
+    borderRadius: 8,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#ffeeba',
+  },
+  warningText: {
+    color: '#856404',
+    fontSize: 16,
+    textAlign: 'center',
+    fontWeight: '500',
+  },
+  disabledInput: {
+    backgroundColor: '#f5f5f5',
+    color: '#999',
+  },
+  disabledButton: {
+    backgroundColor: '#f5f5f5',
+    borderColor: '#ddd',
+  },
+  disabledSaveButton: {
+    backgroundColor: '#b0bec5',
+  },
+  disabledText: {
+    color: '#999',
+  },
+  disabledButtonText: {
+    color: '#fff',
+  },
+  recordedRow: {
+    backgroundColor: '#f8f9fa',
+  },
+  recordedBadge: {
+    color: '#666',
+    fontSize: 12,
+    fontStyle: 'italic',
+  },
+  recordedSelectedButton: {
+    backgroundColor: '#3498db44', // Semi-transparent version of the selected color
+    borderColor: '#3498db',
+  },
+  recordedSelectedText: {
+    color: '#3498db',
+    fontWeight: 'bold',
   },
 });
