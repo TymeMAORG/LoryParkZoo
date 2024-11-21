@@ -9,6 +9,7 @@ import {
   TextInput,
   TouchableOpacity,
   Alert,
+  Share,
 } from "react-native";
 import { ref, get, update, onValue, off } from "firebase/database";
 import { database } from "../../../firebaseConfig";
@@ -27,6 +28,38 @@ type GroupedRecords = {
       [key: string]: FeedingRecord;
     };
   };
+};
+
+const generateReport = (records: GroupedRecords): string => {
+  let report = `Primate Feeding Records Report\n`;
+  report += `Generated: ${new Date().toLocaleString()}\n\n`;
+
+  Object.entries(records)
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .forEach(([date, primateRecords]) => {
+      report += `Date: ${new Date(date).toDateString()}\n`;
+      report += `==========================================\n\n`;
+
+      Object.entries(primateRecords).forEach(([primate, feedingRecords]) => {
+        report += `${primate}\n`;
+        report += `------------------------------------------\n`;
+
+        Object.values(feedingRecords).forEach((record) => {
+          report += `Time: ${new Date(record.timestamp).toLocaleTimeString()}\n`;
+          report += `Feeding Details: ${record.feedingDetails}\n`;
+          report += `Health Status: ${record.healthStatus}\n`;
+          
+          if (record.observations) {
+            report += `Observations: ${record.observations}\n`;
+          }
+          
+          report += `\n`;
+        });
+        report += `\n`;
+      });
+    });
+
+  return report;
 };
 
 export default function FeedingRecords() {
@@ -68,7 +101,7 @@ export default function FeedingRecords() {
 
     return () => {
       console.log('Cleaning up feeding records listener');
-      off(recordsRef);
+      unsubscribe();
     };
   }, []);
 
@@ -124,6 +157,35 @@ export default function FeedingRecords() {
     }
   };
 
+  const exportRecords = async () => {
+    try {
+      if (Object.keys(records).length === 0) {
+        Alert.alert('No Data', 'No records available to export');
+        return;
+      }
+
+      const reportText = generateReport(records);
+
+      const result = await Share.share({
+        message: reportText,
+        title: 'Primate Feeding Records Report',
+      });
+
+      if (result.action === Share.sharedAction) {
+        if (result.activityType) {
+          console.log('Shared with activity type:', result.activityType);
+        } else {
+          console.log('Shared successfully');
+        }
+      } else if (result.action === Share.dismissedAction) {
+        console.log('Share dismissed');
+      }
+    } catch (error) {
+      console.error('Error exporting records:', error);
+      Alert.alert('Error', 'Failed to export records');
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -136,6 +198,13 @@ export default function FeedingRecords() {
     <>
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Feeding Records</Text>
+        <TouchableOpacity 
+          style={styles.exportButton}
+          onPress={exportRecords}
+        >
+          <Ionicons name="share-outline" size={20} color="white" />
+          <Text style={styles.exportButtonText}>Share Records</Text>
+        </TouchableOpacity>
         {Object.entries(records)
           .sort((a, b) => b[0].localeCompare(a[0]))
           .map(([date, primateRecords]) => (
@@ -454,5 +523,28 @@ const styles = StyleSheet.create({
     height: 100,
     textAlignVertical: 'top',
     paddingTop: 10,
+  },
+  exportButton: {
+    backgroundColor: '#2ecc71',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  exportButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 }); 

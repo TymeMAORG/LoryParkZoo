@@ -42,21 +42,10 @@ export default function BirdsOfPreyHome() {
     return () => off(birdsRef);
   }, []);
 
-  const handleBirdSelect = (bird: Bird) => {
-    router.push({
-      pathname: "/staff/birdsofprey/foodmonitoring",
-      params: {
-        name: bird.name,
-        species: bird.species,
-        keeper: username,
-      },
-    });
-  };
-
   const renderBirdCard = ({ item: bird }: { item: Bird }) => (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => handleBirdSelect(bird)}
+      onPress={() => router.push("/staff/birdsofprey/foodmonitoring")}
     >
       <View style={styles.cardHeader}>
         <Text style={styles.cardName}>{bird.name}</Text>

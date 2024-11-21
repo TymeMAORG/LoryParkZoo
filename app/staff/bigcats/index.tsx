@@ -25,12 +25,10 @@ export default function BigCatsHome() {
 
   useEffect(() => {
     const animalsRef = ref(database, 'animals');
-    console.log('Setting up real-time listener for BigCats');
     
     const unsubscribe = onValue(animalsRef, (snapshot: DataSnapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        console.log('Received data:', data);
         
         const bigCatsArray = Object.entries(data)
           .map(([id, animal]: [string, any]) => ({
@@ -38,14 +36,11 @@ export default function BigCatsHome() {
             ...animal
           }))
           .filter(animal => {
-            console.log('Checking animal:', animal);
             return animal.section === "BigCats";
           });
         
-        console.log('Filtered BigCats:', bigCatsArray);
         setAnimals(bigCatsArray);
       } else {
-        console.log('No data in snapshot');
         setAnimals([]);
       }
     }, (error: Error) => {
@@ -53,7 +48,6 @@ export default function BigCatsHome() {
     });
 
     return () => {
-      console.log('Cleaning up listener');
       off(animalsRef);
     };
   }, []);

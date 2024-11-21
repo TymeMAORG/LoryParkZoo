@@ -148,32 +148,6 @@ export default function FoodMonitoringSheet() {
     setCurrentDate(`${dateStr} - ${timeStr}`);
   }, []);
 
-  // Modify the Firebase connection test
-  useEffect(() => {
-    const testConnection = async () => {
-      try {
-        // First verify we can write data
-        const testRef = ref(database, 'connectionTest');
-        await set(testRef, {
-          lastChecked: new Date().toISOString(),
-          status: 'connected'
-        });
-        
-        // Then verify we can read it back
-        const snapshot = await get(testRef);
-        if (snapshot.exists()) {
-          console.log('Firebase connection working properly:', snapshot.val());
-        } else {
-          console.log('Firebase connected but unable to read/write data');
-        }
-      } catch (error) {
-        console.error('Firebase connection error:', error);
-      }
-    };
-    
-    testConnection();
-  }, []);
-
   // Add network monitoring
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener(state => {
