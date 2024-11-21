@@ -10,6 +10,8 @@ import {
 } from "react-native";
 import { ref, get, push, set, child, onValue, off } from "firebase/database";
 import { database } from "../../../firebaseConfig";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 interface Primate {
   id: string;
@@ -21,6 +23,14 @@ interface Primate {
 
 type HealthStatus = 'Healthy' | 'Unhealthy/Ill' | 'Convalescing';
 
+type OfflineRecord = {
+  timestamp: string;
+  feedingDetails: string;
+  healthStatus: HealthStatus;
+  observations: string;
+  primateName: string;
+};
+
 export default function PrimateFeedingForm() {
   const [currentDate, setCurrentDate] = useState<string>("");
   const [primates, setPrimates] = useState<Primate[]>([]);
@@ -30,6 +40,8 @@ export default function PrimateFeedingForm() {
   const [healthStatus, setHealthStatus] = useState<HealthStatus | ''>('');
   const [showSuccess, setShowSuccess] = useState(false);
   const [existingRecord, setExistingRecord] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [hasPendingData, setHasPendingData] = useState(false);
 
   useEffect(() => {
     // Set up real-time listener for primates
@@ -81,6 +93,77 @@ export default function PrimateFeedingForm() {
     return () => off(feedingRef);
   }, [selectedPrimate]);
 
+  // Add network monitoring
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const online = state.isConnected && state.isInternetReachable;
+      setIsOnline(!!online);
+      
+      if (online) {
+        syncOfflineData();
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Check for pending offline data
+  useEffect(() => {
+    checkPendingData();
+  }, []);
+
+  const checkPendingData = async () => {
+    try {
+      const offlineData = await AsyncStorage.getItem('pendingPrimateFeeding');
+      setHasPendingData(!!offlineData);
+    } catch (error) {
+      console.error('Error checking pending data:', error);
+    }
+  };
+
+  // Add function to save locally
+  const saveLocally = async (feedingRecord: OfflineRecord) => {
+    try {
+      const existingData = await AsyncStorage.getItem('pendingPrimateFeeding');
+      const pendingRecords = existingData ? JSON.parse(existingData) : [];
+      pendingRecords.push(feedingRecord);
+      
+      await AsyncStorage.setItem('pendingPrimateFeeding', JSON.stringify(pendingRecords));
+      setHasPendingData(true);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+      clearForm();
+    } catch (error) {
+      console.error('Error saving locally:', error);
+      Alert.alert('Error', 'Failed to save data locally');
+    }
+  };
+
+  // Add function to sync offline data
+  const syncOfflineData = async () => {
+    try {
+      const offlineData = await AsyncStorage.getItem('pendingPrimateFeeding');
+      if (offlineData) {
+        const records: OfflineRecord[] = JSON.parse(offlineData);
+        
+        for (const record of records) {
+          const dateKey = record.timestamp.split('T')[0];
+          const feedingRef = ref(database, `Primates Feeding Records/${dateKey}/${record.primateName}`);
+          const newFeedingRef = push(feedingRef);
+          await set(newFeedingRef, record);
+        }
+
+        await AsyncStorage.removeItem('pendingPrimateFeeding');
+        setHasPendingData(false);
+        Alert.alert('Success', 'Offline records have been synchronized');
+      }
+    } catch (error) {
+      console.error('Error syncing offline data:', error);
+      Alert.alert('Sync Error', 'Failed to sync offline data');
+    }
+  };
+
+  // Modify handleSave to handle offline/online scenarios
   const handleSave = async () => {
     if (existingRecord) {
       Alert.alert(
@@ -95,34 +178,35 @@ export default function PrimateFeedingForm() {
       return;
     }
 
-    try {
-      const timestamp = new Date().toISOString();
-      const dateKey = timestamp.split('T')[0];
-      
-      const feedingRecord = {
-        timestamp,
-        feedingDetails,
-        healthStatus,
-        observations: observations.trim() || "",
-      };
+    const feedingRecord = {
+      timestamp: new Date().toISOString(),
+      feedingDetails,
+      healthStatus,
+      observations: observations.trim() || "",
+      primateName: selectedPrimate
+    };
 
+    if (!isOnline) {
+      await saveLocally(feedingRecord);
+      return;
+    }
+
+    try {
+      const dateKey = feedingRecord.timestamp.split('T')[0];
       const feedingRef = ref(database, `Primates Feeding Records/${dateKey}/${selectedPrimate}`);
       const newFeedingRef = push(feedingRef);
       
       await set(newFeedingRef, feedingRecord);
       
-      // Show success message
       setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
-
+      setTimeout(() => setShowSuccess(false), 3000);
       clearForm();
     } catch (error) {
       console.error("Error saving feeding data:", error);
+      await saveLocally(feedingRecord);
       Alert.alert(
-        "Error", 
-        "Failed to save feeding data. Please check your connection and try again."
+        "Connection Error", 
+        "Data has been saved locally and will sync when connection is restored."
       );
     }
   };
@@ -148,8 +232,26 @@ export default function PrimateFeedingForm() {
     setObservations("");
   };
 
+  // Add connection status indicator
+  const renderConnectionStatus = () => (
+    <View style={[
+      styles.connectionStatus,
+      isOnline ? styles.onlineStatus : styles.offlineStatus
+    ]}>
+      <View style={[
+        styles.connectionDot,
+        isOnline ? styles.onlineDot : styles.offlineDot
+      ]} />
+      <Text style={styles.connectionStatusText}>
+        {isOnline ? 'Online' : 'Offline'}
+        {!isOnline && hasPendingData && ' • Pending Sync'}
+      </Text>
+    </View>
+  );
+
   return (
     <ScrollView style={styles.container}>
+      {renderConnectionStatus()}
       {showSuccess && (
         <View style={styles.successMessage}>
           <Text style={styles.successText}>✓ Feeding record saved successfully!</Text>
@@ -415,5 +517,49 @@ const styles = StyleSheet.create({
   },
   disabledSaveButton: {
     backgroundColor: '#b0bec5',
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 10,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  onlineStatus: {
+    borderColor: '#4CAF50',
+    borderWidth: 1,
+  },
+  offlineStatus: {
+    borderColor: '#FF5252',
+    borderWidth: 1,
+  },
+  onlineDot: {
+    backgroundColor: '#4CAF50',
+  },
+  offlineDot: {
+    backgroundColor: '#FF5252',
+  },
+  connectionStatusText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
   },
 });

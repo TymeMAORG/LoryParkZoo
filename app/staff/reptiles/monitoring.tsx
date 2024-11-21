@@ -14,6 +14,8 @@ import { Picker } from "@react-native-picker/picker";
 import { router, useLocalSearchParams } from "expo-router";
 import { ref, push, serverTimestamp, onValue, off } from 'firebase/database';
 import { database } from '../../../firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 
 interface Reptile {
   id: string;
@@ -23,12 +25,36 @@ interface Reptile {
   section: string;
 }
 
+type OfflineRecord = {
+  timestamp: string;
+  date: string;
+  animalName: string;
+  species: string;
+  enclosure: string;
+  temperature: string;
+  humidity: string;
+  health: string;
+  foodOfferedQuantity: string;
+  foodType: string;
+  foodTaken: string;
+  regurgitating: boolean;
+  faeces: boolean;
+  inBlue: boolean;
+  shed: boolean;
+  clean: boolean;
+  urine: boolean;
+  water: boolean;
+  observation: string;
+};
+
 export default function ReptileRoomForm() {
   const [reptiles, setReptiles] = useState<Reptile[]>([]);
   const [selectedReptile, setSelectedReptile] = useState<Reptile | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [recordedReptiles, setRecordedReptiles] = useState<Set<string>>(new Set());
   const [showError, setShowError] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [hasPendingData, setHasPendingData] = useState(false);
 
   const initialFormData = {
     date: "",
@@ -102,6 +128,83 @@ export default function ReptileRoomForm() {
     return () => off(monitoringRef);
   }, [formData.date]);
 
+  // Add network monitoring
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const online = state.isConnected && state.isInternetReachable;
+      setIsOnline(!!online);
+      
+      if (online) {
+        syncOfflineData();
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Check for pending offline data
+  useEffect(() => {
+    checkPendingData();
+  }, []);
+
+  const checkPendingData = async () => {
+    try {
+      const offlineData = await AsyncStorage.getItem('pendingReptileMonitoring');
+      const pendingRecords = offlineData ? JSON.parse(offlineData) : [];
+      setHasPendingData(pendingRecords.length > 0);
+    } catch (error) {
+      console.error('Error checking pending data:', error);
+    }
+  };
+
+  // Add function to save locally
+  const saveLocally = async (monitoringData: OfflineRecord) => {
+    try {
+      const existingData = await AsyncStorage.getItem('pendingReptileMonitoring');
+      const pendingRecords = existingData ? JSON.parse(existingData) : [];
+      pendingRecords.push(monitoringData);
+      
+      await AsyncStorage.setItem('pendingReptileMonitoring', JSON.stringify(pendingRecords));
+      setHasPendingData(true);
+      setShowSuccess(true);
+      setTimeout(() => {
+        setShowSuccess(false);
+        router.push("/staff/reptiles/");
+      }, 3000);
+    } catch (error) {
+      console.error('Error saving locally:', error);
+      Alert.alert('Error', 'Failed to save data locally');
+    }
+  };
+
+  // Add function to sync offline data
+  const syncOfflineData = async () => {
+    try {
+      const offlineData = await AsyncStorage.getItem('pendingReptileMonitoring');
+      if (offlineData) {
+        const records: OfflineRecord[] = JSON.parse(offlineData);
+        
+        for (const record of records) {
+          const monitoringRef = ref(
+            database, 
+            `Reptiles Monitoring Records/${record.date}/${record.animalName}`
+          );
+          await push(monitoringRef, {
+            ...record,
+            serverTimestamp: serverTimestamp()
+          });
+        }
+
+        await AsyncStorage.removeItem('pendingReptileMonitoring');
+        setHasPendingData(false);
+        Alert.alert('Success', 'Offline records have been synchronized');
+      }
+    } catch (error) {
+      console.error('Error syncing offline data:', error);
+      Alert.alert('Sync Error', 'Failed to sync offline data');
+    }
+  };
+
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData({ ...formData, [field]: value });
   };
@@ -158,24 +261,32 @@ export default function ReptileRoomForm() {
       return;
     }
 
+    const timestamp = new Date().toISOString();
+    const dateKey = formData.date;
+    
+    const monitoringData = {
+      ...formData,
+      timestamp,
+      animalName: selectedReptile.name,
+      species: selectedReptile.species,
+      enclosure: selectedReptile.enclosure,
+    };
+
     try {
-      const timestamp = new Date().toISOString();
-      
+      if (!isOnline) {
+        await saveLocally(monitoringData);
+        return;
+      }
+
       const monitoringRef = ref(
         database, 
-        `Reptiles Monitoring Records/${formData.date}/${selectedReptile.name}`
+        `Reptiles Monitoring Records/${dateKey}/${selectedReptile.name}`
       );
 
-      const dataToSubmit = {
-        ...formData,
-        timestamp,
-        serverTimestamp: serverTimestamp(),
-        animalName: selectedReptile.name,
-        species: selectedReptile.species,
-        enclosure: selectedReptile.enclosure,
-      };
-
-      await push(monitoringRef, dataToSubmit);
+      await push(monitoringRef, {
+        ...monitoringData,
+        serverTimestamp: serverTimestamp()
+      });
       
       setShowSuccess(true);
       setSelectedReptile(null);
@@ -187,7 +298,11 @@ export default function ReptileRoomForm() {
       }, 3000);
     } catch (error) {
       console.error("Error submitting form:", error);
-      Alert.alert("Error", "Failed to submit monitoring record");
+      await saveLocally(monitoringData);
+      Alert.alert(
+        "Connection Error",
+        "Data has been saved locally and will sync when connection is restored."
+      );
     }
   };
 
@@ -204,9 +319,27 @@ export default function ReptileRoomForm() {
     return null;
   };
 
+  // Add connection status indicator
+  const renderConnectionStatus = () => (
+    <View style={[
+      styles.connectionStatus,
+      isOnline ? styles.onlineStatus : styles.offlineStatus
+    ]}>
+      <View style={[
+        styles.connectionDot,
+        isOnline ? styles.onlineDot : styles.offlineDot
+      ]} />
+      <Text style={styles.connectionStatusText}>
+        {isOnline ? 'Online' : 'Offline'}
+        {!isOnline && hasPendingData && ' • Pending Sync'}
+      </Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <ScrollView style={styles.scrollContainer}>
+        {renderConnectionStatus()}
         {showSuccess && (
           <View style={styles.successMessage}>
             <Text style={styles.successText}>✓ Monitoring record saved successfully!</Text>
@@ -572,5 +705,49 @@ const styles = StyleSheet.create({
   },
   recordedReptileText: {
     color: '#2e7d32',
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 10,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  onlineStatus: {
+    borderColor: '#4CAF50',
+    borderWidth: 1,
+  },
+  offlineStatus: {
+    borderColor: '#FF5252',
+    borderWidth: 1,
+  },
+  onlineDot: {
+    backgroundColor: '#4CAF50',
+  },
+  offlineDot: {
+    backgroundColor: '#FF5252',
+  },
+  connectionStatusText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
   },
 });

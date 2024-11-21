@@ -1,6 +1,7 @@
 import React from "react";
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function PrimateLayout() {
   return (
@@ -23,7 +24,11 @@ export default function PrimateLayout() {
     >
       <Tabs.Screen
         name="index"
-        options={{ title: "Primates" }}
+          options={{ title: "Primates",
+            tabBarIcon: ({ color }) => (
+              <MaterialIcons name="grass" color={color} size={24}/>
+            ),
+         }}
       />
       <Tabs.Screen
         name="feeding" // It will look for feeding.tsx in the same folder

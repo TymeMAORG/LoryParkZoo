@@ -1,38 +1,147 @@
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
-import { useUserStore } from '../index';
+import { ref, onValue, off } from 'firebase/database';
+import { database } from '../../firebaseConfig';
+
+interface ActivityItem {
+  timestamp: string;
+  animalName: string;
+  type: string;
+  section: string;
+}
 
 export default function AdminDashboard() {
-  const { username } = useUserStore();
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Create refs for each section's records
+    const primatesRef = ref(database, `Primates Feeding Records/${today}`);
+    const reptilesRef = ref(database, `Reptiles Monitoring Records/${today}`);
+    const bigcatsRef = ref(database, `BigCats FoodMonitoring Sheet/${today}`);
+    
+    const handleData = (snapshot: any, section: string, type: string) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        return Object.entries(data).map(([animalName, records]: [string, any]) => ({
+          timestamp: records.timestamp || records[Object.keys(records)[0]]?.timestamp,
+          animalName,
+          type,
+          section
+        }));
+      }
+      return [];
+    };
+
+    const unsubscribePrimates = onValue(primatesRef, (snapshot) => {
+      const primateActivities = handleData(snapshot, 'Primates', 'Feeding');
+      updateActivities(primateActivities);
+    });
+
+    const unsubscribeReptiles = onValue(reptilesRef, (snapshot) => {
+      const reptileActivities = handleData(snapshot, 'Reptiles', 'Monitoring');
+      updateActivities(reptileActivities);
+    });
+
+    const unsubscribeBigcats = onValue(bigcatsRef, (snapshot) => {
+      const bigcatActivities = handleData(snapshot, 'BigCats', 'Food Monitoring');
+      updateActivities(bigcatActivities);
+    });
+
+    return () => {
+      off(primatesRef);
+      off(reptilesRef);
+      off(bigcatsRef);
+    };
+  }, []);
+
+  const updateActivities = (newActivities: ActivityItem[]) => {
+    setActivities(current => {
+      const combined = [...current, ...newActivities];
+      // Remove duplicates and sort by timestamp
+      const unique = Array.from(new Map(
+        combined.map(item => [item.animalName + item.section, item])
+      ).values());
+      return unique.sort((a, b) => 
+        new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+      );
+    });
+  };
+
+  const getActivityMessage = (activity: ActivityItem) => {
+    switch (activity.section) {
+      case 'Primates':
+        return `Feeding form submitted for ${activity.animalName}`;
+      case 'Reptiles':
+        return `Enclosure monitoring form submitted for ${activity.animalName}`;
+      case 'BigCats':
+        return `Food monitoring form submitted for ${activity.animalName}`;
+      default:
+        return '';
+    }
+  };
+
+  const formatTime = (timestamp: string) => {
+    return new Date(timestamp).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getSectionColor = (section: string) => {
+    switch (section) {
+      case 'Primates':
+        return '#4CAF50';
+      case 'Reptiles':
+        return '#2196F3';
+      case 'BigCats':
+        return '#FF9800';
+      default:
+        return '#757575';
+    }
+  };
 
   return (
     <ScrollView style={styles.container}>
-      <Text style={styles.welcome}>Welcome Admin, {username}!</Text>
-      
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>15</Text>
-          <Text style={styles.statLabel}>Total Staff</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>45</Text>
-          <Text style={styles.statLabel}>Animals</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>8</Text>
-          <Text style={styles.statLabel}>Sections</Text>
-        </View>
+      <View style={styles.header}>
+        <Text style={styles.headerText}>Today's Activity</Text>
+        <Text style={styles.dateText}>
+          {new Date().toLocaleDateString('en-US', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          })}
+        </Text>
       </View>
 
-      <Text style={styles.sectionTitle}>Recent Activity</Text>
-      <View style={styles.activityList}>
-        <View style={styles.activityItem}>
-          <Text style={styles.activityText}>Sarah submitted daily checklist</Text>
-          <Text style={styles.activityTime}>2 hours ago</Text>
-        </View>
-        <View style={styles.activityItem}>
-          <Text style={styles.activityText}>John updated feeding schedule</Text>
-          <Text style={styles.activityTime}>4 hours ago</Text>
-        </View>
+      <View style={styles.activityContainer}>
+        {activities.length === 0 ? (
+          <View style={styles.noActivityContainer}>
+            <Text style={styles.noActivityText}>No activity recorded today</Text>
+          </View>
+        ) : (
+          activities.map((activity, index) => (
+            <View 
+              key={`${activity.animalName}-${activity.section}-${index}`} 
+              style={styles.activityItem}
+            >
+              <View style={[
+                styles.sectionIndicator,
+                { backgroundColor: getSectionColor(activity.section) }
+              ]} />
+              <View style={styles.activityContent}>
+                <Text style={styles.activityText}>
+                  {getActivityMessage(activity)}
+                </Text>
+                <Text style={styles.timestamp}>
+                  {formatTime(activity.timestamp)}
+                </Text>
+              </View>
+            </View>
+          ))
+        )}
       </View>
     </ScrollView>
   );
@@ -41,64 +150,68 @@ export default function AdminDashboard() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: '#f5f5f5',
   },
-  welcome: {
+  header: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e0e0e0',
+  },
+  headerText: {
     fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 20,
+    color: '#333',
   },
-  statsContainer: {
+  dateText: {
+    fontSize: 16,
+    color: '#666',
+    marginTop: 4,
+  },
+  activityContainer: {
+    padding: 16,
+  },
+  activityItem: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  statCard: {
-    backgroundColor: 'white',
-    padding: 15,
-    borderRadius: 10,
-    flex: 1,
-    marginHorizontal: 5,
-    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 12,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
+    overflow: 'hidden',
   },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#2196F3',
+  sectionIndicator: {
+    width: 4,
+    backgroundColor: '#4CAF50',
   },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 5,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    marginTop: 10,
-  },
-  activityList: {
-    backgroundColor: 'white',
-    borderRadius: 10,
-    padding: 15,
-  },
-  activityItem: {
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+  activityContent: {
+    flex: 1,
+    padding: 16,
   },
   activityText: {
     fontSize: 16,
+    color: '#333',
+    marginBottom: 4,
   },
-  activityTime: {
-    fontSize: 12,
+  timestamp: {
+    fontSize: 14,
     color: '#666',
-    marginTop: 5,
+  },
+  noActivityContainer: {
+    padding: 20,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  noActivityText: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
   },
 }); 

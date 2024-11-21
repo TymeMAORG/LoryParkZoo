@@ -1,4 +1,4 @@
-import { MaterialIcons } from '@expo/vector-icons';
+import { MaterialIcons, Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Modal, Alert, FlatList } from 'react-native';
 import { getDatabase, ref, push, set, onValue, remove, update } from 'firebase/database';
@@ -117,7 +117,7 @@ export default function StaffManagement() {
                 onPress={() => handleEditStaff(item)}
                 style={styles.editButton}
               >
-                <MaterialIcons name="edit" size={24} color="#2196F3" />
+                <Ionicons name="pencil" size={20} color="#3498db" />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleDeleteStaff(item.id)}

@@ -41,8 +41,12 @@ export default function AdminTabsLayout() {
           ),
         }}
       />
-      
+      <Tabs.Screen
+        name="sections"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
-
   );
 }

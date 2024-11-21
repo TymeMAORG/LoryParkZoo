@@ -7,9 +7,14 @@ import {
   ScrollView,
   Alert,
   TextInput,
+  Platform,
+  Share,
 } from "react-native";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
 import { ref, get, set, onValue, off } from "firebase/database";
 import { database } from "../../../firebaseConfig";
+import { Ionicons } from '@expo/vector-icons';
 
 type BigCat = {
   id: string;
@@ -22,7 +27,40 @@ type FoodIntakeState = {
   [catName: string]: string;
 };
 
+// Add new types for offline data
+type OfflineRecord = {
+  timestamp: string;
+  date: string;
+  temperature: number;
+  foodIntake: FoodIntakeState;
+};
+
+type DailyReport = {
+  timestamp: string;
+  date: string;
+  temperature: number;
+  foodIntake: FoodIntakeState;
+};
+
 const foodOptions = ["All", "3/4", "1/2", "1/4", "None"];
+
+const generateReport = (data: DailyReport, cats: BigCat[]): string => {
+  const date = new Date(data.timestamp).toLocaleString();
+  
+  let report = `Big Cats Food Monitoring Report\n`;
+  report += `Date: ${date}\n`;
+  report += `Temperature: ${data.temperature}°C\n\n`;
+  report += `Food Intake Records:\n`;
+  report += `------------------\n\n`;
+
+  cats.forEach(cat => {
+    const intake = data.foodIntake[cat.name] || 'Not recorded';
+    report += `${cat.name} (${cat.species})\n`;
+    report += `Leftover Food: ${intake}\n\n`;
+  });
+
+  return report;
+};
 
 export default function FoodMonitoringSheet() {
   const [bigCats, setBigCats] = useState<BigCat[]>([]);
@@ -33,6 +71,8 @@ export default function FoodMonitoringSheet() {
   const [showFoodIntakeError, setShowFoodIntakeError] = useState(false);
   const [existingRecord, setExistingRecord] = useState(false);
   const [recordedCats, setRecordedCats] = useState<Set<string>>(new Set());
+  const [isOnline, setIsOnline] = useState(true);
+  const [hasPendingData, setHasPendingData] = useState(false);
 
   // Replace the fetchBigCats useEffect with real-time listener
   useEffect(() => {
@@ -134,6 +174,73 @@ export default function FoodMonitoringSheet() {
     testConnection();
   }, []);
 
+  // Add network monitoring
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      const online = state.isConnected && state.isInternetReachable;
+      setIsOnline(!!online);
+      
+      if (online) {
+        syncOfflineData();
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Check for pending offline data on mount
+  useEffect(() => {
+    checkPendingData();
+  }, []);
+
+  const checkPendingData = async () => {
+    try {
+      const offlineData = await AsyncStorage.getItem('pendingFoodMonitoring');
+      setHasPendingData(!!offlineData);
+    } catch (error) {
+      console.error('Error checking pending data:', error);
+    }
+  };
+
+  // Add function to save data locally
+  const saveLocally = async (monitoringData: OfflineRecord) => {
+    try {
+      await AsyncStorage.setItem('pendingFoodMonitoring', JSON.stringify(monitoringData));
+      setHasPendingData(true);
+      setShowSuccess(true);
+      setTimeout(() => setShowSuccess(false), 3000);
+    } catch (error) {
+      console.error('Error saving locally:', error);
+      Alert.alert('Error', 'Failed to save data locally');
+    }
+  };
+
+  // Add function to sync offline data
+  const syncOfflineData = async () => {
+    try {
+      const offlineData = await AsyncStorage.getItem('pendingFoodMonitoring');
+      if (offlineData) {
+        const data: OfflineRecord = JSON.parse(offlineData);
+        const foodMonitoringRef = ref(database, `BigCats FoodMonitoring Sheet/${data.date}`);
+        const temperatureHistoryRef = ref(database, `BigCats Temperature History/${data.date}`);
+
+        await set(foodMonitoringRef, data);
+        await set(temperatureHistoryRef, {
+          temperature: data.temperature,
+          timestamp: data.timestamp
+        });
+
+        // Clear offline data after successful sync
+        await AsyncStorage.removeItem('pendingFoodMonitoring');
+        setHasPendingData(false);
+        Alert.alert('Success', 'Offline data has been synchronized');
+      }
+    } catch (error) {
+      console.error('Error syncing offline data:', error);
+      Alert.alert('Sync Error', 'Failed to sync offline data');
+    }
+  };
+
   // Handle selection of food intake for each cat
   const handleSelection = (catName: string, option: string) => {
     if (recordedCats.has(catName)) return; // Prevent selection if cat is already recorded
@@ -151,7 +258,7 @@ export default function FoodMonitoringSheet() {
     return !isNaN(tempNum) && tempNum >= -50 && tempNum <= 50;
   };
 
-  // Modify saveDataToFirebase to check for existing records
+  // Modify saveDataToFirebase to handle offline/online scenarios
   const saveDataToFirebase = async () => {
     if (existingRecord) {
       Alert.alert(
@@ -190,47 +297,41 @@ export default function FoodMonitoringSheet() {
       return;
     }
 
+    const dateKey = new Date().toISOString().split('T')[0];
+    const timestamp = new Date().toISOString();
+    const monitoringData = {
+      timestamp,
+      date: dateKey,
+      temperature: parseFloat(temperature),
+      foodIntake
+    };
+
+    if (!isOnline) {
+      await saveLocally(monitoringData);
+      return;
+    }
+
     try {
-      const dateKey = new Date().toISOString().split('T')[0];
-      const timestamp = new Date().toISOString();
       const foodMonitoringRef = ref(database, `BigCats FoodMonitoring Sheet/${dateKey}`);
-      
-      const monitoringData = {
-        timestamp,
-        date: dateKey,
-        temperature: parseFloat(temperature),
-        foodIntake
-      };
+      const temperatureHistoryRef = ref(database, `BigCats Temperature History/${dateKey}`);
 
-      // Save to Firebase
       await set(foodMonitoringRef, monitoringData);
-
-      // Save to temperature history
-      const temperatureHistoryRef = ref(
-        database, 
-        `BigCats Temperature History/${dateKey}`
-      );
-      
       await set(temperatureHistoryRef, {
         temperature: parseFloat(temperature),
         timestamp
       });
 
-      // Clear the form
       setFoodIntake({});
       setTemperature("");
-      
-      // Show success message
       setShowSuccess(true);
-      // Hide success message after 3 seconds
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
+      setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
       console.error("Error saving data:", error);
+      // If online save fails, save locally
+      await saveLocally(monitoringData);
       Alert.alert(
-        "Error", 
-        "Failed to save data. Please check your connection and try again."
+        "Connection Error", 
+        "Data has been saved locally and will sync when connection is restored."
       );
     }
   };
@@ -294,6 +395,70 @@ export default function FoodMonitoringSheet() {
     );
   };
 
+  // Add connection status indicator
+  const renderConnectionStatus = () => (
+    <View style={[
+      styles.connectionStatus,
+      isOnline ? styles.onlineStatus : styles.offlineStatus
+    ]}>
+      <View style={[
+        styles.connectionDot,
+        isOnline ? styles.onlineDot : styles.offlineDot
+      ]} />
+      <Text style={styles.connectionStatusText}>
+        {isOnline ? 'Online' : 'Offline'}
+        {!isOnline && hasPendingData && ' • Pending Sync'}
+      </Text>
+    </View>
+  );
+
+  const exportDailyReport = async () => {
+    if (!isOnline) {
+      Alert.alert('Error', 'Cannot export report while offline');
+      return;
+    }
+
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const reportRef = ref(database, `BigCats FoodMonitoring Sheet/${today}`);
+      const snapshot = await get(reportRef);
+
+      if (!snapshot.exists()) {
+        Alert.alert('No Data', 'No food monitoring record exists for today');
+        return;
+      }
+
+      const data = snapshot.val();
+      const reportText = generateReport(data, bigCats);
+
+      try {
+        const result = await Share.share({
+          message: reportText,
+          title: `Food Monitoring Report - ${today}`,
+        });
+
+        if (result.action === Share.sharedAction) {
+          if (result.activityType) {
+            // shared with activity type of result.activityType
+            console.log('Shared with activity type:', result.activityType);
+          } else {
+            // shared
+            console.log('Shared successfully');
+          }
+        } else if (result.action === Share.dismissedAction) {
+          // dismissed
+          console.log('Share dismissed');
+        }
+      } catch (error) {
+        Alert.alert('Error', 'Failed to share report');
+        console.error('Share error:', error);
+      }
+    } catch (error) {
+      console.error('Error exporting report:', error);
+      Alert.alert('Error', 'Failed to export report');
+    }
+  };
+
   // Add a loading state when no big cats are found
   if (bigCats.length === 0) {
     return (
@@ -305,11 +470,19 @@ export default function FoodMonitoringSheet() {
 
   return (
     <ScrollView style={styles.container}>
+      {renderConnectionStatus()}
       {showSuccess && (
         <View style={styles.successMessage}>
           <Text style={styles.successText}>✓ Data saved successfully!</Text>
         </View>
       )}
+      <TouchableOpacity 
+        style={styles.exportButton}
+        onPress={exportDailyReport}
+      >
+        <Ionicons name="share-outline" size={20} color="white" />
+        <Text style={styles.exportButtonText}>Share Report</Text>
+      </TouchableOpacity>
       {renderWarningMessage()}
       <View style={styles.header}>
         <Text style={styles.headerText}>Daily Food Monitoring Sheet</Text>
@@ -566,5 +739,72 @@ const styles = StyleSheet.create({
   recordedSelectedText: {
     color: '#3498db',
     fontWeight: 'bold',
+  },
+  connectionStatus: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    alignSelf: 'center',
+    marginBottom: 10,
+    backgroundColor: 'white',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 1,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
+  onlineStatus: {
+    borderColor: '#4CAF50',
+    borderWidth: 1,
+  },
+  offlineStatus: {
+    borderColor: '#FF5252',
+    borderWidth: 1,
+  },
+  onlineDot: {
+    backgroundColor: '#4CAF50',
+  },
+  offlineDot: {
+    backgroundColor: '#FF5252',
+  },
+  connectionStatusText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: '#666',
+  },
+  exportButton: {
+    backgroundColor: '#2ecc71',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    elevation: 5,
+  },
+  exportButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '500',
+    marginLeft: 8,
   },
 });
