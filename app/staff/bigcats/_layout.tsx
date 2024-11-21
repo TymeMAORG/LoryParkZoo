@@ -2,6 +2,7 @@ import React from "react";
 import { Tabs } from "expo-router";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Icon } from "react-native-elements";
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
 
 export default function BigCatsLayout() {
   return (
@@ -30,7 +31,7 @@ export default function BigCatsLayout() {
             let iconName: any;
             if (route.name === "index") {
               return (
-                <Icon name="pets" type="material" size={size} color={color} />
+                <MaterialCommunityIcons name="cat" size={size} color={color} />
               );
             } else if (route.name === "profile") {
               iconName = "person";
