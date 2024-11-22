@@ -315,36 +315,44 @@ export default function FoodMonitoringSheet() {
         showFoodIntakeError && !foodIntake[cat.name] && !isRecorded && styles.errorRow,
         isRecorded && styles.recordedRow
       ]}>
-        <Text style={[styles.cell, styles.catCell]}>
-          {cat.name} / {cat.species}
-          {isRecorded && <Text style={styles.recordedBadge}> (Recorded)</Text>}
-        </Text>
-        <View style={styles.foodOptions}>
-          {foodOptions.map((option, optionIndex) => (
-            <TouchableOpacity
-              key={optionIndex}
-              style={[
-                styles.optionButton,
-                foodIntake[cat.name] === option && styles.selectedButton,
-                showFoodIntakeError && !foodIntake[cat.name] && !isRecorded && styles.errorButton,
-                isRecorded && styles.disabledButton,
-                isRecorded && foodIntake[cat.name] === option && styles.recordedSelectedButton
-              ]}
-              onPress={() => handleSelection(cat.name, option)}
-              disabled={isRecorded}
-            >
-              <Text
+        <View style={styles.catInfoContainer}>
+          <Text style={[styles.cell, styles.catCell]} numberOfLines={2}>
+            {cat.name} / {cat.species}
+            {isRecorded && <Text style={styles.recordedBadge}> (Recorded)</Text>}
+          </Text>
+        </View>
+        <View style={styles.foodOptionsContainer}>
+          <ScrollView 
+            horizontal 
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.foodOptions}
+          >
+            {foodOptions.map((option, optionIndex) => (
+              <TouchableOpacity
+                key={optionIndex}
                 style={[
-                  styles.optionText,
-                  foodIntake[cat.name] === option && styles.selectedText,
-                  isRecorded && styles.disabledText,
-                  isRecorded && foodIntake[cat.name] === option && styles.recordedSelectedText
+                  styles.optionButton,
+                  foodIntake[cat.name] === option && styles.selectedButton,
+                  showFoodIntakeError && !foodIntake[cat.name] && !isRecorded && styles.errorButton,
+                  isRecorded && styles.disabledButton,
+                  isRecorded && foodIntake[cat.name] === option && styles.recordedSelectedButton
                 ]}
+                onPress={() => handleSelection(cat.name, option)}
+                disabled={isRecorded}
               >
-                {option}
-              </Text>
-            </TouchableOpacity>
-          ))}
+                <Text
+                  style={[
+                    styles.optionText,
+                    foodIntake[cat.name] === option && styles.selectedText,
+                    isRecorded && styles.disabledText,
+                    isRecorded && foodIntake[cat.name] === option && styles.recordedSelectedText
+                  ]}
+                >
+                  {option}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
         </View>
       </View>
     );
@@ -472,8 +480,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     borderBottomWidth: 1,
     borderColor: "#ddd",
-    alignItems: "center",
     paddingVertical: 10,
+    paddingHorizontal: 8,
   },
   cell: {
     flex: 1,
@@ -489,28 +497,41 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   catCell: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "500",
     color: "#333",
+    flexWrap: 'wrap',
+  },
+  foodOptionsContainer: {
+    flex: 0.6, // Takes 60% of the row width
   },
   foodOptions: {
     flexDirection: "row",
-    justifyContent: "space-around",
-    flex: 1,
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 4,
   },
   optionButton: {
-    backgroundColor: "#ddd",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
-    borderRadius: 5,
-    marginHorizontal: 4,
+    backgroundColor: "#f0f0f0",
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    minWidth: 40,
+    height: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#ddd',
   },
   selectedButton: {
-    backgroundColor: "#3498db", // Selected button background color
+    backgroundColor: "#3498db",
+    borderColor: "#2980b9",
   },
   optionText: {
-    fontSize: 14,
+    fontSize: 12,
     color: "#333",
+    fontWeight: '500',
+    textAlign: 'center',
   },
   selectedText: {
     color: "#fff", // Selected text color
@@ -684,5 +705,9 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
     color: '#666',
+  },
+  catInfoContainer: {
+    flex: 0.4, // Takes 40% of the row width
+    justifyContent: 'center',
   },
 });

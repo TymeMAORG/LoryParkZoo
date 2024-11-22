@@ -169,7 +169,7 @@ export default function ReptileRoomForm() {
       setShowSuccess(true);
       setTimeout(() => {
         setShowSuccess(false);
-        router.push("/staff/reptiles/");
+        router.push("/staff/reptiles");
       }, 3000);
     } catch (error) {
       console.error('Error saving locally:', error);
@@ -294,7 +294,7 @@ export default function ReptileRoomForm() {
       
       setTimeout(() => {
         setShowSuccess(false);
-        router.push("/staff/reptiles/");
+        router.push("/staff/reptiles");
       }, 3000);
     } catch (error) {
       console.error("Error submitting form:", error);

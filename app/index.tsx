@@ -51,7 +51,7 @@ export default function Login() {
       }
       setUser('admin', 'admin', true);
       await AsyncStorage.setItem('user', JSON.stringify({ username: 'admin', section: 'admin' }));
-      router.replace('/admin/');
+      router.replace('/admin');
       return;
     }
 
@@ -121,7 +121,6 @@ export default function Login() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

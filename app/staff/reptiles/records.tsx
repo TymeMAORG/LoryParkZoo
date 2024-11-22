@@ -173,88 +173,109 @@ export default function ReptileRecords() {
       <ScrollView style={styles.container}>
         <Text style={styles.title}>Monitoring Records</Text>
         {Object.entries(records)
-          .sort((a, b) => b[0].localeCompare(a[0]))
+          .filter(([_, reptileRecords]) => 
+            // Filter out dates that have no valid records
+            Object.keys(reptileRecords).length > 0 && 
+            Object.values(reptileRecords).some(records => 
+              Object.keys(records).length > 0
+            )
+          )
+          .sort((a, b) => {
+            // Parse dates in YYYY-MM-DD format
+            const dateA = new Date(a[0]); // Already in YYYY-MM-DD format
+            const dateB = new Date(b[0]);
+            return dateB.getTime() - dateA.getTime();
+          })
           .map(([date, reptileRecords]) => (
             <View key={date} style={styles.dateSection}>
-              <Text style={styles.dateHeader}>{new Date(date).toDateString()}</Text>
-              {Object.entries(reptileRecords).map(([reptile, monitoringRecords]) => (
-                <View key={reptile} style={styles.reptileSection}>
-                  <Text style={styles.reptileHeader}>
-                    {reptile} - {Object.values(monitoringRecords)[0].species}
-                  </Text>
-                  <Text style={styles.enclosureText}>
-                    Enclosure: {Object.values(monitoringRecords)[0].enclosure}
-                  </Text>
-                  {Object.entries(monitoringRecords).map(([recordKey, record]) => (
-                    <View key={recordKey} style={styles.recordCard}>
-                      <View style={styles.recordHeader}>
-                        <Text style={styles.timestamp}>
-                          <Text style={styles.label}>Time Recorded: </Text>
-                          {new Date(record.timestamp).toLocaleTimeString()}
-                        </Text>
-                        <TouchableOpacity
-                          onPress={() => handleEdit(date, reptile, recordKey, record)}
-                          style={styles.editButton}
-                        >
-                          <Ionicons name="pencil" size={20} color="#3498db" />
-                        </TouchableOpacity>
-                      </View>
+              <Text style={styles.dateHeader}>
+                {new Date(date).toLocaleDateString('en-GB', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
+                })}
+              </Text>
+              {Object.entries(reptileRecords)
+                .filter(([_, records]) => Object.keys(records).length > 0)
+                .map(([reptile, monitoringRecords]) => (
+                  <View key={reptile} style={styles.reptileSection}>
+                    <Text style={styles.reptileHeader}>
+                      {reptile} - {Object.values(monitoringRecords)[0].species}
+                    </Text>
+                    <Text style={styles.enclosureText}>
+                      Enclosure: {Object.values(monitoringRecords)[0].enclosure}
+                    </Text>
+                    {Object.entries(monitoringRecords).map(([recordKey, record]) => (
+                      <View key={recordKey} style={styles.recordCard}>
+                        <View style={styles.recordHeader}>
+                          <Text style={styles.timestamp}>
+                            <Text style={styles.label}>Time Recorded: </Text>
+                            {new Date(record.timestamp).toLocaleTimeString()}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => handleEdit(date, reptile, recordKey, record)}
+                            style={styles.editButton}
+                          >
+                            <Ionicons name="pencil" size={20} color="#3498db" />
+                          </TouchableOpacity>
+                        </View>
 
-                      <Text style={styles.details}>
-                        <Text style={styles.label}>Temperature: </Text>
-                        {record.temperature}°C
-                      </Text>
-
-                      <Text style={styles.details}>
-                        <Text style={styles.label}>Humidity: </Text>
-                        {record.humidity}%
-                      </Text>
-
-                      <Text style={styles.details}>
-                        <Text style={styles.label}>Health: </Text>
-                        {record.health}
-                      </Text>
-
-                      {record.foodOfferedQuantity && (
                         <Text style={styles.details}>
-                          <Text style={styles.label}>Food Offered: </Text>
-                          {record.foodOfferedQuantity} {record.foodType}
+                          <Text style={styles.label}>Temperature: </Text>
+                          {record.temperature}°C
                         </Text>
-                      )}
 
-                      {record.foodTaken && (
                         <Text style={styles.details}>
-                          <Text style={styles.label}>Food Taken: </Text>
-                          {record.foodTaken}
+                          <Text style={styles.label}>Humidity: </Text>
+                          {record.humidity}%
                         </Text>
-                      )}
 
-                      <View style={styles.checkboxGroup}>
-                        {record.regurgitating && <Text style={styles.tag}>Regurgitating</Text>}
-                        {record.faeces && <Text style={styles.tag}>Faeces</Text>}
-                        {record.inBlue && <Text style={styles.tag}>In Blue</Text>}
-                        {record.shed && <Text style={styles.tag}>Shedding</Text>}
-                        {record.clean && <Text style={styles.tag}>Clean</Text>}
-                        {record.urine && <Text style={styles.tag}>Urine</Text>}
-                        {record.water && <Text style={styles.tag}>Water</Text>}
+                        <Text style={styles.details}>
+                          <Text style={styles.label}>Health: </Text>
+                          {record.health}
+                        </Text>
+
+                        {record.foodOfferedQuantity && (
+                          <Text style={styles.details}>
+                            <Text style={styles.label}>Food Offered: </Text>
+                            {record.foodOfferedQuantity} {record.foodType}
+                          </Text>
+                        )}
+
+                        {record.foodTaken && (
+                          <Text style={styles.details}>
+                            <Text style={styles.label}>Food Taken: </Text>
+                            {record.foodTaken}
+                          </Text>
+                        )}
+
+                        <View style={styles.checkboxGroup}>
+                          {record.regurgitating && <Text style={styles.tag}>Regurgitating</Text>}
+                          {record.faeces && <Text style={styles.tag}>Faeces</Text>}
+                          {record.inBlue && <Text style={styles.tag}>In Blue</Text>}
+                          {record.shed && <Text style={styles.tag}>Shedding</Text>}
+                          {record.clean && <Text style={styles.tag}>Clean</Text>}
+                          {record.urine && <Text style={styles.tag}>Urine</Text>}
+                          {record.water && <Text style={styles.tag}>Water</Text>}
+                        </View>
+
+                        {record.observation && (
+                          <Text style={styles.observation}>
+                            <Text style={styles.label}>Observations: </Text>
+                            {record.observation}
+                          </Text>
+                        )}
+
+                        {record.lastEdited && (
+                          <Text style={styles.editedTimestamp}>
+                            Last edited: {new Date(record.lastEdited).toLocaleString()}
+                          </Text>
+                        )}
                       </View>
-
-                      {record.observation && (
-                        <Text style={styles.observation}>
-                          <Text style={styles.label}>Observations: </Text>
-                          {record.observation}
-                        </Text>
-                      )}
-
-                      {record.lastEdited && (
-                        <Text style={styles.editedTimestamp}>
-                          Last edited: {new Date(record.lastEdited).toLocaleString()}
-                        </Text>
-                      )}
-                    </View>
-                  ))}
-                </View>
-              ))}
+                    ))}
+                  </View>
+                ))}
             </View>
           ))}
       </ScrollView>
